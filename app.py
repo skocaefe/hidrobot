@@ -28,7 +28,7 @@ gubreler = {
     "Kalsiyum Hidroksit": {"formul": "Ca(OH)2", "besin": {"Ca": 0.54}, "agirlik": 74.09}
 }
 
-# Reçeteler
+# Reçeteler (dengeli hale getirildi)
 receteler = {
     "çilek": {
         "vejetatif": {
@@ -37,7 +37,7 @@ receteler = {
             "SO4": 1.00,
             "NH4": 1.00,
             "K": 5.00,
-            "Ca": 2.50,
+            "Ca": 2.00,
             "Mg": 1.00,
             "EC": 1.6,
             "pH": 5.8
@@ -93,7 +93,7 @@ receteler = {
     },
     "biber": {
         "meyve": {
-            "NO3": 11.00,
+            "NO3": 10.00,
             "H2PO4": 1.50,
             "SO4": 1.00,
             "NH4": 0.50,
