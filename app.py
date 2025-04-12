@@ -47,10 +47,20 @@ domates_meyve = {
     "EC": 2.5,
     "pH": 6.0
 }
+biber_meyve = {
+    "Azot": 150,
+    "Fosfor": 50,
+    "Potasyum": 200,
+    "Kalsiyum": 120,
+    "Magnezyum": 40,
+    "EC": 2.0,
+    "pH": 6.0
+}
 besin_veritabani = {
     "çilek": {"vejetatif": cilek_vejetatif, "meyve": cilek_meyve},
     "marul": {"üretim": marul_uretim},
-    "domates": {"çiçeklenme": domates_ciceklenme, "meyve": domates_meyve}
+    "domates": {"çiçeklenme": domates_ciceklenme, "meyve": domates_meyve},
+    "biber": {"meyve": biber_meyve}
 }
 
 # Stil ekleme
