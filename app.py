@@ -28,6 +28,15 @@ gubreler = {
     "Kalsiyum Hidroksit": {"formul": "Ca(OH)2", "besin": {"Ca": 0.54}, "agirlik": 74.09}
 }
 
+# Besin-gübre eşleştirmesi
+besin_gubreleri = {
+    "Azot": ["Kalsiyum Nitrat", "Potasyum Nitrat", "Amonyum Sülfat", "Amonyum Nitrat", "Magnezyum Nitrat", "Mono Amonyum Fosfat", "Nitrik Asit"],
+    "Fosfor": ["Fosforik Asit", "Mono Potasyum Fosfat", "Mono Amonyum Fosfat"],
+    "Potasyum": ["Potasyum Nitrat", "Mono Potasyum Fosfat", "Potasyum Sülfat", "Potasyum Bikarbonat"],
+    "Kalsiyum": ["Kalsiyum Nitrat", "Kalsiyum Hidroksit"],
+    "Magnezyum": ["Magnezyum Nitrat", "Magnezyum Sülfat"]
+}
+
 # Reçeteler
 cilek_vejetatif = {
     "Azot": 9,
@@ -117,29 +126,64 @@ asama = st.selectbox("Büyüme aşamasını seçin:", list(besin_veritabani[bitk
 tank_a_hacim = st.number_input("A Tankı Hacmi (litre)", min_value=1.0, value=100.0)
 tank_b_hacim = st.number_input("B Tankı Hacmi (litre)", min_value=1.0, value=100.0)
 konsantrasyon = st.number_input("Stok Konsantrasyon Oranı (örneğin 100x)", min_value=1.0, value=100.0)
-secilen_gubreler = st.multiselect("Gübreleri seçin:", list(gubreler.keys()))
+
+# Reçete tablosu ve gübre seçimi
+st.write(f"**{bitki.capitalize()} ({asama}) reçetesi:**")
+recete = besin_veritabani[bitki][asama]
+birim = "mmol/L" if bitki == "çilek" else "ppm"
+tablo_veri = {
+    "Besin": ["Azot", "Fosfor", "Potasyum", "Kalsiyum", "Magnezyum", "EC", "pH"],
+    "Değer": [
+        f"{recete['Azot']} {birim}",
+        f"{recete['Fosfor']} {birim}",
+        f"{recete['Potasyum']} {birim}",
+        f"{recete['Kalsiyum']} {birim}",
+        f"{recete['Magnezyum']} {birim}",
+        f"{recete['EC']} mS/cm",
+        f"{recete['pH']}"
+    ],
+    "Gübre": [""] * 7
+}
+gubre_secimleri = {}
+for besin in ["Azot", "Fosfor", "Potasyum", "Kalsiyum", "Magnezyum"]:
+    if besin == "Kalsiyum":
+        gubre_secimleri[besin] = st.selectbox(f"{besin} için gübre:", ["Kalsiyum Nitrat"], key=f"gubre_{besin}")
+    else:
+        gubre_secimleri[besin] = st.selectbox(f"{besin} için gübre:", besin_gubreleri[besin], key=f"gubre_{besin}")
+    if gubre_secimleri[besin]:
+        tablo_veri["Gübre"][list(tablo_veri["Besin"]).index(besin)] = gubre_secimleri[besin]
+
+df = pd.DataFrame(tablo_veri)
+st.table(df)
 
 # Reçeteyi hesapla
 if st.button("Reçeteyi Göster"):
-    recete = besin_veritabani[bitki][asama]
-    birim = "mmol/L" if bitki == "çilek" else "ppm"
-
-    # Gübre miktarlarını hesapla
     gubre_miktarlari = {}
     kalan_besinler = recete.copy()
-    for gubre in secilen_gubreler:
-        gubre_bilgi = gubreler[gubre]
-        miktar = 0
-        for besin, yuzde in gubre_bilgi["besin"].items():
-            if besin in kalan_besinler and kalan_besinler[besin] > 0:
-                # mmol/L veya ppm’den gram/L’ye çevir
+
+    # Kalsiyum Nitrat ile Kalsiyum ve Azot hesaplama
+    kalsiyum_gubre = gubre_secimleri["Kalsiyum"]
+    if kalsiyum_gubre == "Kalsiyum Nitrat":
+        gubre_bilgi = gubreler[kalsiyum_gubre]
+        ca_miktar = kalan_besinler["Kalsiyum"]
+        ca_miktar_g = ca_miktar * gubre_bilgi["agirlik"] / gubre_bilgi["besin"]["Ca"] / 1000
+        n_miktar = ca_miktar * gubre_bilgi["besin"]["N"] / gubre_bilgi["besin"]["Ca"]
+        gubre_miktarlari[kalsiyum_gubre] = ca_miktar_g * 1000  # g/1000 L
+        kalan_besinler["Kalsiyum"] = 0
+        kalan_besinler["Azot"] -= n_miktar
+
+    # Diğer besinler için hesaplama
+    for besin, gubre in gubre_secimleri.items():
+        if besin != "Kalsiyum" and gubre and kalan_besinler[besin] > 0:
+            gubre_bilgi = gubreler[gubre]
+            if besin in gubre_bilgi["besin"]:
+                besin_miktar = kalan_besinler[besin]
                 if birim == "mmol/L":
-                    besin_miktar = kalan_besinler[besin] * gubre_bilgi["agirlik"] / yuzde / 1000
+                    miktar = besin_miktar * gubre_bilgi["agirlik"] / gubre_bilgi["besin"][besin] / 1000
                 else:
-                    besin_miktar = kalan_besinler[besin] / yuzde / 1000
-                miktar = max(miktar, besin_miktar)
-                kalan_besinler[besin] -= (miktar * yuzde * 1000 / gubre_bilgi["agirlik"]) if birim == "mmol/L" else (miktar * yuzde * 1000)
-        gubre_miktarlari[gubre] = miktar * 1000  # gram/1000 L
+                    miktar = besin_miktar / gubre_bilgi["besin"][besin] / 1000
+                gubre_miktarlari[gubre] = miktar * 1000  # g/1000 L
+                kalan_besinler[besin] = 0
 
     # Tank stok çözeltileri
     stok_a = {}
@@ -149,23 +193,6 @@ if st.button("Reçeteyi Göster"):
             stok_a[gubre] = miktar / konsantrasyon / 1000  # kg
         else:
             stok_b[gubre] = miktar / konsantrasyon / 1000  # kg
-
-    # Tablo oluştur
-    tablo_veri = {
-        "Besin": ["Azot", "Fosfor", "Potasyum", "Kalsiyum", "Magnezyum", "EC", "pH"],
-        "Değer": [
-            f"{recete['Azot']} {birim}",
-            f"{recete['Fosfor']} {birim}",
-            f"{recete['Potasyum']} {birim}",
-            f"{recete['Kalsiyum']} {birim}",
-            f"{recete['Magnezyum']} {birim}",
-            f"{recete['EC']} mS/cm",
-            f"{recete['pH']}"
-        ]
-    }
-    df = pd.DataFrame(tablo_veri)
-    st.write(f"**{bitki.capitalize()} ({asama}) reçetesi:**")
-    st.table(df)
 
     # Gübre miktarları
     st.write("**Gübre Miktarları (g/1000 L):**")
@@ -185,8 +212,8 @@ if st.button("Reçeteyi Göster"):
     c = canvas.Canvas(buffer, pagesize=letter)
     c.drawString(100, 750, f"{bitki.capitalize()} ({asama}) Reçetesi")
     y = 700
-    for besin, deger in zip(tablo_veri["Besin"], tablo_veri["Değer"]):
-        c.drawString(100, y, f"{besin}: {deger}")
+    for besin, deger, gubre in zip(tablo_veri["Besin"], tablo_veri["Değer"], tablo_veri["Gübre"]):
+        c.drawString(100, y, f"{besin}: {deger} ({gubre})")
         y -= 20
     y -= 20
     c.drawString(100, y, "Gübre Miktarları (g/1000 L):")
