@@ -86,7 +86,6 @@ if "logged_in" not in st.session_state:
 
 if not st.session_state.logged_in:
     st.title("Giriş Yap")
-    st.image("logo.png", width=150)
     username = st.text_input("Kullanıcı Adı")
     password = st.text_input("Şifre", type="password")
     if st.button("Giriş"):
@@ -97,7 +96,6 @@ if not st.session_state.logged_in:
             st.error("Hatalı kullanıcı adı veya şifre!")
 else:
     st.title("Hidroponik Besin Çözeltisi Chatbot")
-    st.image("logo.png", width=150)
     st.write("Aşağıdan bitki, aşama ve drenaj EC’si girin:")
 
     # Yardım butonu
@@ -118,26 +116,30 @@ else:
 
     # Reçeteyi hesapla
     if st.button("Reçeteyi Göster"):
-        recete = besin_veritabani[bitki][asama].copy()
-        birim = "mmol/L" if bitki == "çilek" else "ppm"
-        if drain_ec > recete["EC"] + 0.5:
-            recete["Azot"] *= 0.9
-            recete["Potasyum"] *= 0.9
-            st.write("**Uyarı**: Drenaj EC’si yüksek, Azot ve Potasyum %10 azaltıldı.")
-        
-        # Tablo oluştur
-        tablo_veri = {
-            "Besin": ["Azot", "Fosfor", "Potasyum", "Kalsiyum", "Magnezyum", "EC", "pH"],
-            "Değer": [
-                f"{recete['Azot']} {birim}",
-                f"{recete['Fosfor']} {birim}",
-                f"{recete['Potasyum']} {birim}",
-                f"{recete['Kalsiyum']} {birim}",
-                f"{recete['Magnezyum']} {birim}",
-                f"{recete['EC']} mS/cm",
-                f"{recete['pH']}"
-            ]
-        }
-        df = pd.DataFrame(tablo_veri)
-        st.write(f"**{bitki.capitalize()} ({asama}) reçetesi:**")
-        st.table(df)
+        # Hata kontrolü
+        if drain_ec < 0 or drain_ec > 10:
+            st.error("Hatalı drenaj EC’si! Lütfen 0 ile 10 mS/cm arasında bir değer girin.")
+        else:
+            recete = besin_veritabani[bitki][asama].copy()
+            birim = "mmol/L" if bitki == "çilek" else "ppm"
+            if drain_ec > recete["EC"] + 0.5:
+                recete["Azot"] *= 0.9
+                recete["Potasyum"] *= 0.9
+                st.write("**Uyarı**: Drenaj EC’si yüksek, Azot ve Potasyum %10 azaltıldı.")
+            
+            # Tablo oluştur
+            tablo_veri = {
+                "Besin": ["Azot", "Fosfor", "Potasyum", "Kalsiyum", "Magnezyum", "EC", "pH"],
+                "Değer": [
+                    f"{recete['Azot']} {birim}",
+                    f"{recete['Fosfor']} {birim}",
+                    f"{recete['Potasyum']} {birim}",
+                    f"{recete['Kalsiyum']} {birim}",
+                    f"{recete['Magnezyum']} {birim}",
+                    f"{recete['EC']} mS/cm",
+                    f"{recete['pH']}"
+                ]
+            }
+            df = pd.DataFrame(tablo_veri)
+            st.write(f"**{bitki.capitalize()} ({asama}) reçetesi:**")
+            st.table(df)
