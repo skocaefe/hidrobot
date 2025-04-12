@@ -88,6 +88,17 @@ else:
     st.title("Hidroponik Besin Çözeltisi Chatbot")
     st.write("Aşağıdan bitki, aşama ve drenaj EC’si girin:")
 
+    # Yardım butonu
+    if st.button("Yardım"):
+        st.write("""
+        **Drenaj EC’si nedir?**  
+        Drenaj EC’si, hidroponik sisteminizden çıkan suyun elektriksel iletkenliğini (tuz miktarını) ölçer.  
+        - **Normal değer**: Bitkinizin hedef EC’sine yakın olmalı (örneğin, çilek için 1.6-2.1 mS/cm).  
+        - **Yüksekse**: Besin dozu azaltılır (örneğin, Azot ve Potasyum %10 düşer).  
+        - **Nasıl ölçülür?**: EC ölçer cihazıyla.  
+        Daha fazla bilgi için ziraat uzmanına danışabilirsiniz.
+        """)
+
     # Kullanıcıdan seçim al
     bitki = st.selectbox("Bitkiyi seçin:", list(besin_veritabani.keys()))
     asama = st.selectbox("Büyüme aşamasını seçin:", list(besin_veritabani[bitki].keys()))
