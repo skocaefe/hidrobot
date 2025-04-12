@@ -189,14 +189,16 @@ if st.button("Reçeteyi Göster"):
         for gubre, besinler in mikro_besinler.items():
             gubre_miktarlari_gram[gubre] = besinler["mg_L"]  # mg/L → g/1000 L
 
-        # Tank stok çözeltileri
+        # Tank stok çözeltileri (kg cinsinden)
         stok_a = {}
         stok_b = {}
         for gubre, miktar in gubre_miktarlari_gram.items():
+            # 1000 litre için gram cinsinden miktar, konsantrasyon oranına göre kg cinsine çevrilecek
+            stok_miktar_kg = miktar / konsantrasyon  # g → kg için
             if gubre in ["Kalsiyum Nitrat", "Magnezyum Nitrat", "Kalsiyum Hidroksit"]:
-                stok_a[gubre] = miktar / konsantrasyon / 1000  # kg
+                stok_a[gubre] = stok_miktar_kg
             else:
-                stok_b[gubre] = miktar / konsantrasyon / 1000  # kg
+                stok_b[gubre] = stok_miktar_kg
 
         # Gübre tablosu (makro ve mikro besinler)
         st.write("**Gübre Miktarları:**")
