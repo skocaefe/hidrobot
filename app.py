@@ -70,9 +70,9 @@ konsantrasyon = st.number_input("Stok Konsantrasyon Oranı (örneğin 100x)", mi
 # Anyon-Katyon tablosu
 st.write("**Anyon-Katyon Dengesi:**")
 tablo_denge = {
-    "Anyon": ["NO3", "H2PO4", "SO4", "Toplam"],
-    "mmol/L (Anyon)": [11.75, 1.25, 1.00, 14.00],
-    "me/L (Anyon)": [11.75, 1.25, 2.00, 15.00],
+    "Anyon": ["NO3", "H2PO4", "SO4", "", "Toplam"],
+    "mmol/L (Anyon)": [11.75, 1.25, 1.00, "", 14.00],
+    "me/L (Anyon)": [11.75, 1.25, 2.00, "", 15.00],
     "Katyon": ["NH4", "K", "Ca", "Mg", "Toplam"],
     "mmol/L (Katyon)": [1.00, 5.50, 3.25, 1.00, 10.75],
     "me/L (Katyon)": [1.00, 5.50, 6.50, 2.00, 15.00]
