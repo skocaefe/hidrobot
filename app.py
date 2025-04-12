@@ -236,13 +236,13 @@ if st.button("Reçeteyi Göster"):
         df_gubre = pd.DataFrame(tablo_gubre)
         st.table(df_gubre)
 
-        # Stok çözeltileri
+        # Stok çözeltileri (daha hassas görüntüleme için .4f)
         st.write("**A Tankı Stok Çözelti (kg):**")
         for gubre, miktar in stok_a.items():
-            st.write(f"{gubre}: {miktar:.2f} kg")
+            st.write(f"{gubre}: {miktar:.4f} kg")
         st.write("**B Tankı Stok Çözelti (kg):**")
         for gubre, miktar in stok_b.items():
-            st.write(f"{gubre}: {miktar:.2f} kg")
+            st.write(f"{gubre}: {miktar:.4f} kg")
 
         # PDF oluştur
         buffer = io.BytesIO()
@@ -264,13 +264,13 @@ if st.button("Reçeteyi Göster"):
         c.drawString(100, y, f"A Tankı ({tank_a_hacim} L):")
         y -= 20
         for gubre, miktar in stok_a.items():
-            c.drawString(100, y, f"{gubre}: {miktar:.2f} kg")
+            c.drawString(100, y, f"{gubre}: {miktar:.4f} kg")
             y -= 20
         y -= 20
         c.drawString(100, y, f"B Tankı ({tank_b_hacim} L):")
         y -= 20
         for gubre, miktar in stok_b.items():
-            c.drawString(100, y, f"{gubre}: {miktar:.2f} kg")
+            c.drawString(100, y, f"{gubre}: {miktar:.4f} kg")
             y -= 20
         y -= 20
         c.drawString(100, y, f"Konsantrasyon: {konsantrasyon}x")
