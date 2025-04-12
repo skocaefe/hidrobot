@@ -1,5 +1,8 @@
 import streamlit as st
 import pandas as pd
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+import io
 
 # Reçeteler
 cilek_vejetatif = {
@@ -143,3 +146,21 @@ else:
             df = pd.DataFrame(tablo_veri)
             st.write(f"**{bitki.capitalize()} ({asama}) reçetesi:**")
             st.table(df)
+
+            # PDF oluştur
+            buffer = io.BytesIO()
+            c = canvas.Canvas(buffer, pagesize=letter)
+            c.drawString(100, 750, f"{bitki.capitalize()} ({asama}) Reçetesi")
+            y = 700
+            for besin, deger in zip(tablo_veri["Besin"], tablo_veri["Değer"]):
+                c.drawString(100, y, f"{besin}: {deger}")
+                y -= 20
+            c.showPage()
+            c.save()
+            buffer.seek(0)
+            st.download_button(
+                label="Reçeteyi PDF Olarak İndir",
+                data=buffer,
+                file_name=f"{bitki}_{asama}_recete.pdf",
+                mime="application/pdf"
+            )
