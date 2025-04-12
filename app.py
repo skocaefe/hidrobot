@@ -86,6 +86,7 @@ if "logged_in" not in st.session_state:
 
 if not st.session_state.logged_in:
     st.title("Giriş Yap")
+    st.image("logo.png", width=150)
     username = st.text_input("Kullanıcı Adı")
     password = st.text_input("Şifre", type="password")
     if st.button("Giriş"):
@@ -96,6 +97,7 @@ if not st.session_state.logged_in:
             st.error("Hatalı kullanıcı adı veya şifre!")
 else:
     st.title("Hidroponik Besin Çözeltisi Chatbot")
+    st.image("logo.png", width=150)
     st.write("Aşağıdan bitki, aşama ve drenaj EC’si girin:")
 
     # Yardım butonu
