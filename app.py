@@ -1,6 +1,15 @@
 import streamlit as st
 
 # Reçeteler
+cilek_vejetatif = {
+    "Azot": 9,
+    "Fosfor": 1,
+    "Potasyum": 5.5,
+    "Kalsiyum": 2.5,
+    "Magnezyum": 1,
+    "EC": 1.6,
+    "pH": 5.8
+}
 cilek_meyve = {
     "Azot": 9,
     "Fosfor": 1.5,
@@ -19,6 +28,15 @@ marul_uretim = {
     "EC": 1.8,
     "pH": 5.8
 }
+domates_ciceklenme = {
+    "Azot": 170,
+    "Fosfor": 50,
+    "Potasyum": 250,
+    "Kalsiyum": 140,
+    "Magnezyum": 40,
+    "EC": 2.3,
+    "pH": 6.0
+}
 domates_meyve = {
     "Azot": 190,
     "Fosfor": 50,
@@ -29,9 +47,9 @@ domates_meyve = {
     "pH": 6.0
 }
 besin_veritabani = {
-    "çilek": {"meyve": cilek_meyve},
+    "çilek": {"vejetatif": cilek_vejetatif, "meyve": cilek_meyve},
     "marul": {"üretim": marul_uretim},
-    "domates": {"meyve": domates_meyve}
+    "domates": {"çiçeklenme": domates_ciceklenme, "meyve": domates_meyve}
 }
 
 # Erişim kontrolü
