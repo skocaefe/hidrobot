@@ -203,23 +203,21 @@ else:
                 st.write(f"**{uyar}**")
             st.table(df)
 
-            # PDF oluştur
-            try:
-                buffer = io.BytesIO()
-                c = canvas.Canvas(buffer, pagesize=letter)
-                c.drawString(100, 750, f"{bitki.capitalize()} ({asama}) Reçetesi")
-                y = 700
-                for besin, deger in zip(tablo_veri["Besin"], tablo_veri["Değer"]):
-                    c.drawString(100, y, f"{besin}: {deger}")
-                    y -= 20
-                c.showPage()
-                c.save()
-                buffer.seek(0)
-                st.download_button(
-                    label=metin["download"],
-                    data=buffer,
-                    file_name=f"{bitki}_{asama}_recipe.pdf",
-                    mime="application/pdf"
-                )
-            except Exception as e:
-                st.error(f"PDF oluşturma hatası: {str(e)}")
+            # PDF oluşturma
+            buffer = io.BytesIO()
+            c = canvas.Canvas(buffer, pagesize=letter)
+            c.drawString(100, 750, f"{bitki.capitalize()} ({asama})")
+            y = 700
+            for besin, deger in zip(tablo_veri["Besin"], tablo_veri["Değer"]):
+                c.drawString(100, y, f"{besin}: {deger}")
+                y -= 20
+            c.showPage()
+            c.save()
+            buffer.seek(0)
+            st.download_button(
+                label=metin["download"],
+                data=buffer,
+                file_name=f"{bitki}_{asama}_recipe.pdf",
+                mime="application/pdf",
+                key="download_button"
+            )
