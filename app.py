@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 
 # Reçeteler
 cilek_vejetatif = {
@@ -52,6 +53,23 @@ besin_veritabani = {
     "domates": {"çiçeklenme": domates_ciceklenme, "meyve": domates_meyve}
 }
 
+# Stil ekleme
+st.markdown("""
+    <style>
+    .stApp {
+        background-color: #f0f2f6;
+    }
+    h1 {
+        color: #2e7d32;
+        text-align: center;
+    }
+    .stButton>button {
+        background-color: #4caf50;
+        color: white;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 # Erişim kontrolü
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -84,11 +102,19 @@ else:
             recete["Potasyum"] *= 0.9
             st.write("**Uyarı**: Drenaj EC’si yüksek, Azot ve Potasyum %10 azaltıldı.")
         
+        # Tablo oluştur
+        tablo_veri = {
+            "Besin": ["Azot", "Fosfor", "Potasyum", "Kalsiyum", "Magnezyum", "EC", "pH"],
+            "Değer": [
+                f"{recete['Azot']} {birim}",
+                f"{recete['Fosfor']} {birim}",
+                f"{recete['Potasyum']} {birim}",
+                f"{recete['Kalsiyum']} {birim}",
+                f"{recete['Magnezyum']} {birim}",
+                f"{recete['EC']} mS/cm",
+                f"{recete['pH']}"
+            ]
+        }
+        df = pd.DataFrame(tablo_veri)
         st.write(f"**{bitki.capitalize()} ({asama}) reçetesi:**")
-        st.write(f"Azot: {recete['Azot']} {birim}")
-        st.write(f"Fosfor: {recete['Fosfor']} {birim}")
-        st.write(f"Potasyum: {recete['Potasyum']} {birim}")
-        st.write(f"Kalsiyum: {recete['Kalsiyum']} {birim}")
-        st.write(f"Magnezyum: {recete['Magnezyum']} {birim}")
-        st.write(f"EC: {recete['EC']} mS/cm")
-        st.write(f"pH: {recete['pH']}")
+        st.table(df)
