@@ -111,4 +111,65 @@ if st.button("Reçeteyi Göster"):
             stok_b[gubre] = miktar / konsantrasyon / 1000  # kg
 
     # Gübre tablosu
-    st.write("
+    st.write("**Gübre Miktarları:**")
+    tablo_gubre = {
+        "Kimyasal Bileşik": ["KH2PO4", "Ca(NO3)2·4H2O", "NH4NO3", "KNO3", "MgSO4·7H2O", "TOPLAM"],
+        "mmol/L": [1.25, 3.25, 1.00, 4.25, 1.00, ""],
+        "NO3": ["-", 6.50, 1.00, 4.25, "-", 11.75],
+        "H2PO4": [1.25, "-", "-", "-", "-", 1.25],
+        "SO4": ["-", "-", "-", "-", 1.00, 1.00],
+        "NH4": ["-", "-", 1.00, "-", "-", 1.00],
+        "K": [1.25, "-", "-", 4.25, "-", 5.50],
+        "Ca": ["-", 3.25, "-", "-", "-", 3.25],
+        "Mg": ["-", "-", "-", "-", 1.00, 1.00],
+        "Gram (1000 L)": [f"{gubre_miktarlari_gram['KH2PO4']:.2f}", f"{gubre_miktarlari_gram['Ca(NO3)2·4H2O']:.2f}", f"{gubre_miktarlari_gram['NH4NO3']:.2f}", f"{gubre_miktarlari_gram['KNO3']:.2f}", f"{gubre_miktarlari_gram['MgSO4·7H2O']:.2f}", ""]
+    }
+    df_gubre = pd.DataFrame(tablo_gubre)
+    st.table(df_gubre)
+
+    # Stok çözeltileri
+    st.write("**A Tankı Stok Çözelti (kg):**")
+    for gubre, miktar in stok_a.items():
+        st.write(f"{gubre}: {miktar:.2f} kg")
+    st.write("**B Tankı Stok Çözelti (kg):**")
+    for gubre, miktar in stok_b.items():
+        st.write(f"{gubre}: {miktar:.2f} kg")
+
+    # PDF oluştur
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+    c.drawString(100, 750, "Anyon-Katyon Dengesi")
+    y = 700
+    for i, row in df_denge.iterrows():
+        c.drawString(100, y, f"{row['Anyon']}: {row['mmol/L (Anyon)']} mmol/L, {row['me/L (Anyon)']} me/L | {row['Katyon']}: {row['mmol/L (Katyon)']} mmol/L, {row['me/L (Katyon)']} me/L")
+        y -= 20
+    y -= 20
+    c.drawString(100, y, "Gübre Miktarları")
+    y -= 20
+    for i, row in df_gubre.iterrows():
+        c.drawString(100, y, f"{row['Kimyasal Bileşik']}: {row['mmol/L']} mmol/L, NO3: {row['NO3']}, H2PO4: {row['H2PO4']}, SO4: {row['SO4']}, NH4: {row['NH4']}, K: {row['K']}, Ca: {row['Ca']}, Mg: {row['Mg']}, Gram: {row['Gram (1000 L)']}")
+        y -= 20
+    y -= 20
+    c.drawString(100, y, f"A Tankı ({tank_a_hacim} L):")
+    y -= 20
+    for gubre, miktar in stok_a.items():
+        c.drawString(100, y, f"{gubre}: {miktar:.2f} kg")
+        y -= 20
+    y -= 20
+    c.drawString(100, y, f"B Tankı ({tank_b_hacim} L):")
+    y -= 20
+    for gubre, miktar in stok_b.items():
+        c.drawString(100, y, f"{gubre}: {miktar:.2f} kg")
+        y -= 20
+    y -= 20
+    c.drawString(100, y, f"Konsantrasyon: {konsantrasyon}x")
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+    st.download_button(
+        label="Reçeteyi PDF Olarak İndir",
+        data=buffer,
+        file_name="besin_cozeltisi_recipe.pdf",
+        mime="application/pdf",
+        key="download_button"
+    )
