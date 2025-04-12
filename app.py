@@ -89,7 +89,7 @@ else:
     st.write("Aşağıdan bitki, aşama ve drenaj EC’si girin:")
 
     # Yardım butonu
-    if st.button("Yardım"):
+    if st.button("Drenaj EC’si Nedir?"):
         st.write("""
         **Drenaj EC’si nedir?**  
         Drenaj EC’si, hidroponik sisteminizden çıkan suyun elektriksel iletkenliğini (tuz miktarını) ölçer.  
