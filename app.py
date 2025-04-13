@@ -16,42 +16,28 @@ st.markdown("Hidroponik besin çözeltilerinde anyon-katyon dengesi ve kimyasal 
 
 # Gübre bilgilerini içeren veritabanı
 gubre_veritabani = {
-    "HNO3": {"formul": "HNO3", "besin_icerigi": "22N", "formul_agirligi": 63.01, 
-             "anyonlar": {"NO3": 1}, "katyonlar": {}, "asit": True},
-    "H3PO4": {"formul": "H3PO4", "besin_icerigi": "32P", "formul_agirligi": 97.99, 
-              "anyonlar": {"H2PO4": 1}, "katyonlar": {}, "asit": True},
-    "Ca(NO3)2.4H2O": {"formul": "Ca(NO3)2.4H2O", "besin_icerigi": "16.9Ca, 11.9N", "formul_agirligi": 236.15, 
+    "Ca(NO3)2.4H2O": {"formul": "Ca(NO3)2.4H2O", "formul_agirligi": 236.15, 
                       "anyonlar": {"NO3": 2}, "katyonlar": {"Ca": 1}, "a_tank": True},
-    "KNO3": {"formul": "KNO3", "besin_icerigi": "38K, 13N", "formul_agirligi": 101.10, 
+    "KNO3": {"formul": "KNO3", "formul_agirligi": 101.10, 
              "anyonlar": {"NO3": 1}, "katyonlar": {"K": 1}},
-    "(NH4)2SO4": {"formul": "(NH4)2SO4", "besin_icerigi": "21.2N", "formul_agirligi": 132.14, 
-                  "anyonlar": {"SO4": 1}, "katyonlar": {"NH4": 2}},
-    "Mg(NO3)2.6H2O": {"formul": "Mg(NO3)2.6H2O", "besin_icerigi": "9Mg, 11N", "formul_agirligi": 256.41, 
-                      "anyonlar": {"NO3": 2}, "katyonlar": {"Mg": 1}},
-    "KH2PO4": {"formul": "KH2PO4", "besin_icerigi": "28K, 23P", "formul_agirligi": 136.09, 
-               "anyonlar": {"H2PO4": 1}, "katyonlar": {"K": 1}, "b_tank": True},
-    "NH4H2PO4": {"formul": "NH4H2PO4", "besin_icerigi": "27P, 12N", "formul_agirligi": 115.03, 
-                 "anyonlar": {"H2PO4": 1}, "katyonlar": {"NH4": 1}, "b_tank": True},
-    "K2SO4": {"formul": "K2SO4", "besin_icerigi": "45K, 18S", "formul_agirligi": 174.26, 
-              "anyonlar": {"SO4": 1}, "katyonlar": {"K": 2}},
-    "MgSO4.7H2O": {"formul": "MgSO4.7H2O", "besin_icerigi": "10Mg, 13S", "formul_agirligi": 246.51, 
-                   "anyonlar": {"SO4": 1}, "katyonlar": {"Mg": 1}},
-    "NH4NO3": {"formul": "NH4NO3", "besin_icerigi": "34N", "formul_agirligi": 80.04, 
+    "NH4NO3": {"formul": "NH4NO3", "formul_agirligi": 80.04, 
                "anyonlar": {"NO3": 1}, "katyonlar": {"NH4": 1}},
-    "KHCO3": {"formul": "KHCO3", "besin_icerigi": "39K", "formul_agirligi": 100.12, 
-              "anyonlar": {"HCO3": 1}, "katyonlar": {"K": 1}},
-    "Ca(OH)2": {"formul": "Ca(OH)2", "besin_icerigi": "54Ca", "formul_agirligi": 74.09, 
-                "anyonlar": {"OH": 2}, "katyonlar": {"Ca": 1}, "a_tank": True}
+    "KH2PO4": {"formul": "KH2PO4", "formul_agirligi": 136.09, 
+               "anyonlar": {"H2PO4": 1}, "katyonlar": {"K": 1}, "b_tank": True},
+    "K2SO4": {"formul": "K2SO4", "formul_agirligi": 174.26, 
+              "anyonlar": {"SO4": 1}, "katyonlar": {"K": 2}},
+    "MgSO4.7H2O": {"formul": "MgSO4.7H2O", "formul_agirligi": 246.51, 
+                   "anyonlar": {"SO4": 1}, "katyonlar": {"Mg": 1}}
 }
 
 # Mikro besin veritabanı
 mikro_besin_veritabani = {
-    "Fe-EDDHA": {"formul": "Fe-EDDHA", "besin_icerigi": "5Fe", "formul_agirligi": 435, "element": "Fe"},
-    "Na2B4O7.10H2O": {"formul": "Na2B4O7.10H2O", "besin_icerigi": "11B", "formul_agirligi": 381.37, "element": "B"},
-    "MnSO4.H2O": {"formul": "MnSO4.H2O", "besin_icerigi": "32Mn", "formul_agirligi": 169.02, "element": "Mn"},
-    "ZnSO4.7H2O": {"formul": "ZnSO4.7H2O", "besin_icerigi": "23Zn", "formul_agirligi": 287.56, "element": "Zn"},
-    "CuSO4.5H2O": {"formul": "CuSO4.5H2O", "besin_icerigi": "25Cu", "formul_agirligi": 249.68, "element": "Cu"},
-    "Na2MoO4.2H2O": {"formul": "Na2MoO4.2H2O", "besin_icerigi": "40Mo", "formul_agirligi": 241.95, "element": "Mo"}
+    "Fe-EDDHA": {"formul": "Fe-EDDHA", "formul_agirligi": 435, "element": "Fe"},
+    "Na2B4O7.10H2O": {"formul": "Na2B4O7.10H2O", "formul_agirligi": 381.37, "element": "B"},
+    "MnSO4.H2O": {"formul": "MnSO4.H2O", "formul_agirligi": 169.02, "element": "Mn"},
+    "ZnSO4.7H2O": {"formul": "ZnSO4.7H2O", "formul_agirligi": 287.56, "element": "Zn"},
+    "CuSO4.5H2O": {"formul": "CuSO4.5H2O", "formul_agirligi": 249.68, "element": "Cu"},
+    "Na2MoO4.2H2O": {"formul": "Na2MoO4.2H2O", "formul_agirligi": 241.95, "element": "Mo"}
 }
 
 # Hazır reçeteler
@@ -105,7 +91,7 @@ hazir_receteler = {
 
 # İyon değerlikleri
 iyon_degerlikleri = {
-    "NO3": -1, "H2PO4": -1, "SO4": -2, "HCO3": -1, "OH": -1,
+    "NO3": -1, "H2PO4": -1, "SO4": -2,
     "NH4": 1, "K": 1, "Ca": 2, "Mg": 2
 }
 
@@ -121,16 +107,19 @@ if 'mikro_secimleri' not in st.session_state:
         "Fe": 40, "B": 30, "Mn": 5, "Zn": 4, "Cu": 0.75, "Mo": 0.5
     }
 
-if 'gubre_secimi' not in st.session_state:
-    st.session_state.gubre_secimi = {}
+if 'a_tank_hacmi' not in st.session_state:
+    st.session_state.a_tank_hacmi = 10  # litre
 
-if 'sonuclar' not in st.session_state:
-    st.session_state.sonuclar = {}
+if 'b_tank_hacmi' not in st.session_state:
+    st.session_state.b_tank_hacmi = 10  # litre
+
+if 'konsantrasyon_orani' not in st.session_state:
+    st.session_state.konsantrasyon_orani = 100  # 100x
 
 # Ana sekmeleri oluştur
-tab1, tab2, tab3 = st.tabs(["Reçete Seçimi", "İyonik Denge ve Gübre Seçimi", "Sonuçlar ve Tavsiyeler"])
+tab1, tab2, tab3 = st.tabs(["Reçete Seçimi", "Gübre Hesaplama", "Sonuçlar"])
 
-# Sekmeler
+# Reçete Seçimi Sekmesi
 with tab1:
     st.header("Reçete Seçimi")
     
@@ -329,111 +318,174 @@ with tab1:
     fig.tight_layout()
     st.pyplot(fig)
 
+# Gübre Hesaplama Sekmesi
 with tab2:
-    st.header("İyonik Denge ve Gübre Seçimi")
+    st.header("Gübre Hesaplama")
     
-    # Üst kısım: İyonik denge tablosu
-    st.subheader("Anyon-Katyon Dengesi")
+    # Tank ayarları
+    st.subheader("Tank Ayarları")
     
-    # İyonik denge tablosu
-    anyon_data = []
-    for anyon in ["NO3", "H2PO4", "SO4"]:
-        deger = st.session_state.recete_secimleri[anyon]
-        valens = abs(iyon_degerlikleri[anyon])
-        me = deger * valens
-        anyon_data.append([anyon, f"{deger:.2f}", f"{me:.2f}"])
+    col_tank1, col_tank2, col_tank3 = st.columns(3)
     
-    anyon_df = pd.DataFrame(anyon_data, columns=["Anyon", "mmol/L", "me/L"])
+    with col_tank1:
+        a_tank_hacmi = st.number_input("A Tankı Hacmi (litre):", 
+                                       min_value=1, max_value=1000, 
+                                       value=st.session_state.a_tank_hacmi)
+        st.session_state.a_tank_hacmi = a_tank_hacmi
     
-    katyon_data = []
-    for katyon in ["NH4", "K", "Ca", "Mg"]:
-        deger = st.session_state.recete_secimleri[katyon]
-        valens = abs(iyon_degerlikleri[katyon])
-        me = deger * valens
-        katyon_data.append([katyon, f"{deger:.2f}", f"{me:.2f}"])
+    with col_tank2:
+        b_tank_hacmi = st.number_input("B Tankı Hacmi (litre):", 
+                                       min_value=1, max_value=1000, 
+                                       value=st.session_state.b_tank_hacmi)
+        st.session_state.b_tank_hacmi = b_tank_hacmi
     
-    katyon_df = pd.DataFrame(katyon_data, columns=["Katyon", "mmol/L", "me/L"])
+    with col_tank3:
+        konsantrasyon_orani = st.number_input("Konsantrasyon Oranı:", 
+                                             min_value=1, max_value=1000, 
+                                             value=st.session_state.konsantrasyon_orani)
+        st.session_state.konsantrasyon_orani = konsantrasyon_orani
     
-    # İki tabloyu yan yana göster
-    col_tablo1, col_tablo2 = st.columns(2)
-    
-    with col_tablo1:
-        st.table(anyon_df)
-        anyon_toplam_mmol = sum(st.session_state.recete_secimleri[a] for a in ["NO3", "H2PO4", "SO4"])
-        anyon_toplam_me = sum(st.session_state.recete_secimleri[a] * abs(iyon_degerlikleri[a]) for a in ["NO3", "H2PO4", "SO4"])
-        st.write(f"**Toplam:** {anyon_toplam_mmol:.2f} mmol/L | {anyon_toplam_me:.2f} me/L")
-    
-    with col_tablo2:
-        st.table(katyon_df)
-        katyon_toplam_mmol = sum(st.session_state.recete_secimleri[k] for k in ["NH4", "K", "Ca", "Mg"])
-        katyon_toplam_me = sum(st.session_state.recete_secimleri[k] * abs(iyon_degerlikleri[k]) for k in ["NH4", "K", "Ca", "Mg"])
-        st.write(f"**Toplam:** {katyon_toplam_mmol:.2f} mmol/L | {katyon_toplam_me:.2f} me/L")
-    
-    # Alt kısım: Gübre seçimi
-    st.subheader("Gübre Seçimi")
-    
-    # Gübre seçimi yöntemi
-    secim_yontemi = st.radio(
-        "Gübre seçim yöntemi:",
-        ["Otomatik Gübre Seçimi", "Manuel Gübre Seçimi"]
-    )
-    
-    if secim_yontemi == "Otomatik Gübre Seçimi":
-        if st.button("Otomatik Gübre Seçimi Yap"):
-            # Otomatik gübre seçimi algoritması
-            
-            # Seçilen gübreler ve miktarları
-            secilen_gubreler = {}
-            
-            # 1. Kalsiyum Nitrat (A tankı için)
-            if st.session_state.recete_secimleri["Ca"] > 0:
-                secilen_gubreler["Ca(NO3)2.4H2O"] = st.session_state.recete_secimleri["Ca"]
-                kalan_nitrat = st.session_state.recete_secimleri["NO3"] - (2 * st.session_state.recete_secimleri["Ca"])
-            else:
-                kalan_nitrat = st.session_state.recete_secimleri["NO3"]
-            
-            # 2. Monopotasyum Fosfat (B tankı için)
-            if st.session_state.recete_secimleri["H2PO4"] > 0:
-                secilen_gubreler["KH2PO4"] = st.session_state.recete_secimleri["H2PO4"]
-                kalan_k = st.session_state.recete_secimleri["K"] - st.session_state.recete_secimleri["H2PO4"]
-            else:
-                kalan_k = st.session_state.recete_secimleri["K"]
-            
-            # 3. Magnezyum Sülfat
-            if st.session_state.recete_secimleri["Mg"] > 0:
-                secilen_gubreler["MgSO4.7H2O"] = st.session_state.recete_secimleri["Mg"]
-                kalan_sulfat = st.session_state.recete_secimleri["SO4"] - st.session_state.recete_secimleri["Mg"]
-            else:
-                kalan_sulfat = st.session_state.recete_secimleri["SO4"]
-            
-            # 4. Amonyum Nitrat
-            if st.session_state.recete_secimleri["NH4"] > 0:
-                kullanilacak_nh4no3 = min(st.session_state.recete_secimleri["NH4"], kalan_nitrat)
-                if kullanilacak_nh4no3 > 0:
-                    secilen_gubreler["NH4NO3"] = kullanilacak_nh4no3
-                    kalan_nitrat -= kullanilacak_nh4no3
-                    kalan_nh4 = st.session_state.recete_secimleri["NH4"] - kullanilacak_nh4no3
-                else:
-                    kalan_nh4 = st.session_state.recete_secimleri["NH4"]
-            else:
+    # Gübre hesaplama fonksiyonu
+    def hesapla_gubreler(recete, mikro):
+        # Otomatik gübre seçim algoritması
+        secilen_gubreler = {}
+        
+        # A Tankı için (Ca içeren)
+        a_tank_gubreler = {}
+        
+        # B Tankı için (P içeren)
+        b_tank_gubreler = {}
+        
+        # Diğer gübreler
+        diger_gubreler = {}
+        
+        # 1. Kalsiyum Nitrat (A tankı için)
+        if recete["Ca"] > 0:
+            a_tank_gubreler["Ca(NO3)2.4H2O"] = recete["Ca"]
+            kalan_nitrat = recete["NO3"] - (2 * recete["Ca"])
+        else:
+            kalan_nitrat = recete["NO3"]
+        
+        # 2. Monopotasyum Fosfat (B tankı için)
+        if recete["H2PO4"] > 0:
+            b_tank_gubreler["KH2PO4"] = recete["H2PO4"]
+            kalan_k = recete["K"] - recete["H2PO4"]
+        else:
+            kalan_k = recete["K"]
+        
+        # 3. Magnezyum Sülfat
+        if recete["Mg"] > 0:
+            diger_gubreler["MgSO4.7H2O"] = recete["Mg"]
+            kalan_sulfat = recete["SO4"] - recete["Mg"]
+        else:
+            kalan_sulfat = recete["SO4"]
+        
+        # 4. Amonyum Nitrat
+        if recete["NH4"] > 0:
+            if kalan_nitrat >= recete["NH4"]:
+                diger_gubreler["NH4NO3"] = recete["NH4"]
+                kalan_nitrat -= recete["NH4"]
                 kalan_nh4 = 0
+            else:
+                diger_gubreler["NH4NO3"] = kalan_nitrat
+                kalan_nh4 = recete["NH4"] - kalan_nitrat
+                kalan_nitrat = 0
+        else:
+            kalan_nh4 = 0
+        
+        # 5. Potasyum Nitrat
+        if kalan_k > 0 and kalan_nitrat > 0:
+            kullanilacak_kno3 = min(kalan_k, kalan_nitrat)
+            diger_gubreler["KNO3"] = kullanilacak_kno3
+            kalan_nitrat -= kullanilacak_kno3
+            kalan_k -= kullanilacak_kno3
+        
+        # 6. Potasyum Sülfat (kalan K için)
+        if kalan_k > 0 and kalan_sulfat > 0:
+            kullanilacak_k2so4 = min(kalan_k / 2, kalan_sulfat)
+            diger_gubreler["K2SO4"] = kullanilacak_k2so4
             
-            # 5. Potasyum Nitrat
-            if kalan_k > 0 and kalan_nitrat > 0:
-                kullanilacak_kno3 = min(kalan_k, kalan_nitrat)
-                if kullanilacak_kno3 > 0:
-                    secilen_gubreler["KNO3"] = kullanilacak_kno3
-                    kalan_nitrat -= kullanilacak_kno3
-                    kalan_k -= kullanilacak_kno3
-            
-            # 6. Potasyum Sülfat (kalan K için)
-            if kalan_k > 0 and kalan_sulfat > 0:
-                kullanilacak_k2so4 = min(kalan_k / 2, kalan_sulfat)
-                if kullanilacak_k2so4 > 0:
-                    secilen_gubreler["K2SO4"] = kullanilacak_k2so4
-                    kalan_sulfat -= kullanilacak_k2so4
-                    kalan_k -= (2 * kullanilacak_k2so4)
-            
-            # 7. Amonyum Sülfat (kalan NH4 için)
-            if kalan_nh4 > 0 and kalan_sulfat > 0:
-                kullanilacak_nh42so4 = min
+        # Mikro besinleri hesapla
+        mikro_gubreler = {}
+        
+        if mikro["Fe"] > 0:
+            mikro_gubreler["Fe-EDDHA"] = mikro["Fe"] / 1000  # mikromol/L -> mmol/L
+        
+        if mikro["B"] > 0:
+            mikro_gubreler["Na2B4O7.10H2O"] = mikro["B"] / 1000
+        
+        if mikro["Mn"] > 0:
+            mikro_gubreler["MnSO4.H2O"] = mikro["Mn"] / 1000
+        
+        if mikro["Zn"] > 0:
+            mikro_gubreler["ZnSO4.7H2O"] = mikro["Zn"] / 1000
+        
+        if mikro["Cu"] > 0:
+            mikro_gubreler["CuSO4.5H2O"] = mikro["Cu"] / 1000
+        
+        if mikro["Mo"] > 0:
+            mikro_gubreler["Na2MoO4.2H2O"] = mikro["Mo"] / 1000
+        
+        return a_tank_gubreler, b_tank_gubreler, diger_gubreler, mikro_gubreler
+    
+    # mmol/L değerlerini mg/L değerlerine dönüştürme fonksiyonu
+    def mmol_to_mg(gubre_adi, mmol_deger):
+        return mmol_deger * gubre_veritabani[gubre_adi]["formul_agirligi"]
+    
+    def mikro_mmol_to_mg(gubre_adi, mmol_deger):
+        return mmol_deger * mikro_besin_veritabani[gubre_adi]["formul_agirligi"]
+    
+    # Gübre hesaplama
+    if st.button("Gübre Hesapla"):
+        # İyonik dengeyi kontrol et
+        anyon_me, katyon_me = hesapla_iyonik_denge(st.session_state.recete_secimleri)
+        fark = abs(anyon_me - katyon_me)
+        
+        if fark > 1.0:
+            st.error("⚠️ İyonik denge sağlanmadan gübre hesaplaması yapılması önerilmez. Lütfen önce iyonik dengeyi sağlayın.")
+        
+        # Gübre hesapla
+        a_tank, b_tank, diger, mikro = hesapla_gubreler(st.session_state.recete_secimleri, st.session_state.mikro_secimleri)
+        
+        # Sonuçları göster
+        st.subheader("Hesaplanan Gübreler")
+        
+        # A Tankı için tablo
+        st.write("**A Tankı (Kalsiyum İçeren)**")
+        a_tank_data = []
+        for gubre, mmol in a_tank.items():
+            mg_per_liter = mmol_to_mg(gubre, mmol)
+            mg_per_tank = mg_per_liter * st.session_state.konsantrasyon_orani * st.session_state.a_tank_hacmi
+            a_tank_data.append([gubre, f"{mmol:.2f}", f"{mg_per_liter:.2f}", f"{mg_per_tank/1000:.2f}"])
+        
+        a_tank_df = pd.DataFrame(a_tank_data, columns=["Kimyasal Bileşik", "mmol/L", "mg/L", "g/Tank"])
+        st.table(a_tank_df)
+        
+        # B Tankı için tablo
+        st.write("**B Tankı (Fosfat İçeren)**")
+        b_tank_data = []
+        for gubre, mmol in b_tank.items():
+            mg_per_liter = mmol_to_mg(gubre, mmol)
+            mg_per_tank = mg_per_liter * st.session_state.konsantrasyon_orani * st.session_state.b_tank_hacmi
+            b_tank_data.append([gubre, f"{mmol:.2f}", f"{mg_per_liter:.2f}", f"{mg_per_tank/1000:.2f}"])
+        
+        b_tank_df = pd.DataFrame(b_tank_data, columns=["Kimyasal Bileşik", "mmol/L", "mg/L", "g/Tank"])
+        st.table(b_tank_df)
+        
+        # Diğer gübreler için tablo
+        st.write("**Diğer Gübreler**")
+        diger_data = []
+        for gubre, mmol in diger.items():
+            mg_per_liter = mmol_to_mg(gubre, mmol)
+            mg_per_tank = mg_per_liter * st.session_state.konsantrasyon_orani * st.session_state.b_tank_hacmi
+            diger_data.append([gubre, f"{mmol:.2f}", f"{mg_per_liter:.2f}", f"{mg_per_tank/1000:.2f}"])
+        
+        diger_df = pd.DataFrame(diger_data, columns=["Kimyasal Bileşik", "mmol/L", "mg/L", "g/Tank"])
+        st.table(diger_df)
+        
+        # Mikro besinler için tablo
+        st.write("**Mikro Besinler**")
+        mikro_data = []
+        for gubre, mmol in mikro.items():
+            mg_per_liter = mikro_mmol_to_mg(gubre, mmol)
+            mg_per_tank = mg_per_liter * st.session_state.konsantrasyon_orani * st.session_state.b_tank_hacmi
