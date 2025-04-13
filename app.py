@@ -132,27 +132,34 @@ if st.button("Reçeteyi Hesapla"):
         }
 
         # Adım adım hesaplama (HydroBuddy mantığı)
+        # 1. Kalsiyum Nitrat ile Ca ve NO₃
         if recete["Ca"] > 0:
             gubre_miktarlari_mmol["Kalsiyum Nitrat"]["Ca"] = recete["Ca"]
-            gubre_miktarlari_mmol["Kalsiyum Nitrat"]["NO3"] = recete["Ca"] * 2
+            gubre_miktarlari_mmol["Kalsiyum Nitrat"]["NO3"] = recete["Ca"] * (0.144 / 0.187) * (62 / 14)  # NO₃-N → NO₃ dönüşümü
 
+        # 2. Magnezyum Nitrat ile Mg ve NO₃
         if recete["Mg"] > 0:
             gubre_miktarlari_mmol["Magnezyum Nitrat"]["Mg"] = recete["Mg"]
-            gubre_miktarlari_mmol["Magnezyum Nitrat"]["NO3"] = 1.90  # Daha önce hesaplanmış
+            gubre_miktarlari_mmol["Magnezyum Nitrat"]["NO3"] = recete["Mg"] * (0.10 / 0.09) * (62 / 14)
 
+        # 3. MAP ile NH₄ ve H₂PO₄
         if recete["NH4"] > 0:
             gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["NH4"] = recete["NH4"]
-            gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["H2PO4"] = 0.91  # Daha önce hesaplanmış
+            gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["H2PO4"] = recete["NH4"] * (0.266 / 0.17) * (31 / 18)
 
-        if recete["H2PO4"] > 0:
-            gubre_miktarlari_mmol["Mono Potasyum Fosfat"]["H2PO4"] = 0.34  # Daha önce hesaplanmış
-            gubre_miktarlari_mmol["Mono Potasyum Fosfat"]["K"] = 0.34
+        # 4. MKP ile H₂PO₄ ve K
+        remaining_H2PO4 = recete["H2PO4"] - gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["H2PO4"]
+        if remaining_H2PO4 > 0:
+            gubre_miktarlari_mmol["Mono Potasyum Fosfat"]["H2PO4"] = remaining_H2PO4
+            gubre_miktarlari_mmol["Mono Potasyum Fosfat"]["K"] = remaining_H2PO4 * (0.282 / 0.225)
 
+        # 5. Potasyum Nitrat ile NO₃ ve K
         remaining_NO3 = recete["NO3"] - (gubre_miktarlari_mmol["Kalsiyum Nitrat"]["NO3"] + gubre_miktarlari_mmol["Magnezyum Nitrat"]["NO3"])
         if remaining_NO3 > 0:
             gubre_miktarlari_mmol["Potasyum Nitrat"]["NO3"] = remaining_NO3
-            gubre_miktarlari_mmol["Potasyum Nitrat"]["K"] = remaining_NO3 * (0.378 / 0.596)
+            gubre_miktarlari_mmol["Potasyum Nitrat"]["K"] = remaining_NO3 * (0.378 / 0.135) * (14 / 62)
 
+        # 6. Potasyum Sülfat ile K ve SO₄
         remaining_K = recete["K"] - (gubre_miktarlari_mmol["Mono Potasyum Fosfat"]["K"] + gubre_miktarlari_mmol["Potasyum Nitrat"]["K"])
         if remaining_K > 0:
             gubre_miktarlari_mmol["Potasyum Sülfat"]["K"] = remaining_K
@@ -172,18 +179,21 @@ if st.button("Reçeteyi Hesapla"):
                 miktar_mmol = besinler["K"]
                 miktar_gram = (miktar_mmol / (0.45 / 39)) * gubre_bilgi["agirlik"]
             elif gubre == "Potasyum Nitrat":
-                miktar_mmol = besinler["K"]
-                miktar_gram = (miktar_mmol / (0.378 / 39)) * gubre_bilgi["agirlik"]
+                miktar_mmol = besinler["NO3"]
+                miktar_gram = (miktar_mmol / (0.135 / 14 * 62 / 62)) * gubre_bilgi["agirlik"]
             elif gubre == "Magnezyum Nitrat":
                 miktar_mmol = besinler["Mg"]
                 miktar_gram = (miktar_mmol / (0.09 / 24)) * gubre_bilgi["agirlik"]
+            elif gubre == "Kalsiyum Nitrat":
+                miktar_mmol = besinler["Ca"]
+                miktar_gram = (miktar_mmol / (0.187 / 40)) * gubre_bilgi["agirlik"]
             else:
                 miktar_mmol = besinler["Ca"] if "Ca" in besinler else besinler["NO3"]
                 miktar_gram = miktar_mmol * gubre_bilgi["agirlik"]
             gubre_miktarlari_gram[gubre] = miktar_gram
 
         # Mikro besinler için gram cinsinden hesaplama (1000 litre için)
-        for gubre, besinler in mikro_besinler.items():
+        for gubre in mikro_besinler.keys():
             if gubre == "Demir-EDDHA" and recete["Fe"] > 0:
                 gubre_miktarlari_gram[gubre] = (recete["Fe"] / 40) * 37.280
             elif gubre == "Boraks" and recete["B"] > 0:
@@ -241,7 +251,7 @@ if st.button("Reçeteyi Hesapla"):
                 "-", "-", "-", "-",
                 "-", gubre_miktarlari_mmol["Potasyum Sülfat"]["SO4"],
                 "-", "-", "-", "-", "-", "-",
-                recete["SO4"] + (gubre_miktarlari_mmol["Potasyum Sülfat"]["SO4"] - recete["SO4"])
+                recete["SO4"]
             ],
             "NH4": [
                 "-", "-", gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["NH4"],
@@ -252,7 +262,6 @@ if st.button("Reçeteyi Hesapla"):
             "K": [
                 "-", "-", "-",
                 gubre_miktarlari_mmol["Mono Potasyum Fosfat"]["K"],
-                gubre_miktarlari_mmol["Potasyum Nitrat"]["K Ascendingly True Kalsiyum Nitrat: 6.50 mmol/L
                 gubre_miktarlari_mmol["Potasyum Nitrat"]["K"],
                 gubre_miktarlari_mmol["Potasyum Sülfat"]["K"],
                 "-", "-", "-", "-", "-", "-",
