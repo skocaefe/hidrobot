@@ -436,5 +436,4 @@ with tab2:
             
             # 7. Amonyum Sülfat (kalan NH4 için)
             if kalan_nh4 > 0 and kalan_sulfat > 0:
-                kullanilacak_nh42so4 = min(kalan_nh4 / 2, kalan_sulfat)
-                if kullanilacak_nh42so4
+                kullanilacak_nh42so4 = min
