@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# HydroBuddy Türkçe Streamlit Versiyonu
+# HydroBuddy Türkçe Streamlit Versiyonu - Otomatik Formül Oluşturucu
 # Orijinal: Daniel Fernandez
 # Streamlit uyarlaması: [Sizin Adınız]
 
@@ -11,10 +11,11 @@ import sqlite3
 import os
 import base64
 from io import BytesIO
+from scipy.optimize import minimize
 
 # Sayfa ayarları
 st.set_page_config(
-    page_title="HydroBuddy Türkçe",
+    page_title="HydroBuddy Türkçe - Otomatik Formül",
     page_icon="🌱",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -123,7 +124,12 @@ class Veritabani:
             ("Çinko Sülfat", 0, 0, 0, 0, 0, 0, 0, 0, 0, 23, 0, 0, 0, 1),
             ("Borik Asit", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 17, 0, 0, 1),
             ("Bakır Sülfat", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 25, 0, 1),
-            ("Sodyum Molibdat", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 39, 1)
+            ("Sodyum Molibdat", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 39, 1),
+            ("Amonyum Nitrat", 17, 17, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1),
+            ("Üre", 0, 46, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1),
+            ("Süper Fosfat", 0, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1),
+            ("Potasyum Sülfat", 0, 0, 0, 42, 0, 0, 18, 0, 0, 0, 0, 0, 0, 1),
+            ("Mikro Element Karışımı", 0, 0, 0, 0, 0, 0, 0, 7, 2, 0.4, 1.5, 0.1, 0.06, 1)
         ]
         
         for gubre in gubreler:
@@ -149,7 +155,12 @@ class Veritabani:
             ("Domates", 180, 45, 300, 190, 50, 70, 4, 0.8, 0.3, 0.7, 0.15, 0.1),
             ("Salatalık", 160, 60, 230, 170, 45, 60, 3, 0.5, 0.2, 0.5, 0.1, 0.05),
             ("Marul", 120, 40, 180, 150, 40, 50, 2.5, 0.4, 0.1, 0.4, 0.1, 0.05),
-            ("Çilek", 140, 55, 220, 180, 45, 55, 3.5, 0.6, 0.25, 0.6, 0.12, 0.08)
+            ("Çilek", 140, 55, 220, 180, 45, 55, 3.5, 0.6, 0.25, 0.6, 0.12, 0.08),
+            ("Biber", 170, 50, 280, 180, 45, 65, 3.5, 0.7, 0.2, 0.6, 0.15, 0.1),
+            ("Patlıcan", 160, 50, 250, 190, 50, 60, 3, 0.6, 0.2, 0.6, 0.15, 0.1),
+            ("Çiçekli Bitkiler", 120, 60, 240, 170, 40, 55, 3, 0.5, 0.2, 0.5, 0.1, 0.05),
+            ("Yapraklı Sebzeler", 140, 40, 150, 140, 40, 50, 2.5, 0.4, 0.15, 0.4, 0.1, 0.05),
+            ("Fide Evresi", 100, 60, 150, 120, 30, 40, 2, 0.3, 0.1, 0.3, 0.1, 0.05)
         ]
         
         for profil in profiller:
@@ -176,6 +187,20 @@ class Veritabani:
         FROM gubreler WHERE id=?
         """, (gubre_id,))
         return self.cursor.fetchone()
+    
+    def tum_gubre_bilgilerini_getir(self, sadece_turk=True):
+        """Tüm gübrelerin detaylarını içeren bir liste döndürür"""
+        if sadece_turk:
+            self.cursor.execute("""
+            SELECT id, isim, n_nitrat, n_amonyum, p, k, ca, mg, s, fe, mn, zn, b, cu, mo
+            FROM gubreler WHERE turk_market=1
+            """)
+        else:
+            self.cursor.execute("""
+            SELECT id, isim, n_nitrat, n_amonyum, p, k, ca, mg, s, fe, mn, zn, b, cu, mo
+            FROM gubreler
+            """)
+        return self.cursor.fetchall()
     
     def bitki_profilleri_getir(self):
         """Kayıtlı bitki profillerini döndürür"""
@@ -302,10 +327,172 @@ class BesinHesaplayici:
             return True
         return False
 
+class OtomatikFormulOlusturucu:
+    def __init__(self, veritabani, hedef_ppm, hacim_litre=20):
+        self.veritabani = veritabani
+        self.hedef_ppm = hedef_ppm
+        self.hacim_litre = hacim_litre
+        
+    def formul_olustur(self, max_gubre_sayisi=6, min_miktar=0.1, max_miktar=50):
+        """
+        Otomatik formül oluşturur.
+        
+        Args:
+            max_gubre_sayisi: Maksimum kullanılacak gübre sayısı
+            min_miktar: Minimum gübre miktarı (gram)
+            max_miktar: Maksimum gübre miktarı (gram)
+            
+        Returns:
+            (secilen_gubreler, sonuc_ppm) tuple
+            secilen_gubreler: [(gubre_id, gubre_ismi, miktar), ...]
+            sonuc_ppm: {'N': değer, 'P': değer, ...}
+        """
+        # Tüm gübreleri al
+        gubreler = self.veritabani.tum_gubre_bilgilerini_getir(sadece_turk=True)
+        
+        # Makro besinler ve mikro besinler için ayrı formül oluştur
+        # 1. Makro besinler (N, P, K, Ca, Mg, S)
+        makro_besinler = ['N', 'P', 'K', 'Ca', 'Mg', 'S']
+        makro_hedefler = [self.hedef_ppm[b] for b in makro_besinler]
+        
+        # 2. Mikro besinler (Fe, Mn, Zn, B, Cu, Mo)
+        mikro_besinler = ['Fe', 'Mn', 'Zn', 'B', 'Cu', 'Mo']
+        mikro_hedefler = [self.hedef_ppm[b] for b in mikro_besinler]
+        
+        # Gübre verileri matris ve vektörlere dönüştür
+        makro_matris = []
+        mikro_matris = []
+        gubre_isimleri = []
+        gubre_idleri = []
+        
+        for gubre in gubreler:
+            gubre_id = gubre[0]
+            gubre_ismi = gubre[1]
+            
+            # Gübre içeriği (makro besinler)
+            n_nitrat = gubre[2]
+            n_amonyum = gubre[3]
+            p = gubre[4]
+            k = gubre[5]
+            ca = gubre[6]
+            mg = gubre[7]
+            s = gubre[8]
+            
+            # Gübre içeriği (mikro besinler)
+            fe = gubre[9]
+            mn = gubre[10]
+            zn = gubre[11]
+            b = gubre[12]
+            cu = gubre[13]
+            mo = gubre[14]
+            
+            # Gübre bilgilerini matrise ekle
+            makro_matris.append([n_nitrat + n_amonyum, p, k, ca, mg, s])
+            mikro_matris.append([fe, mn, zn, b, cu, mo])
+            gubre_isimleri.append(gubre_ismi)
+            gubre_idleri.append(gubre_id)
+        
+        # Numpy dizilerine dönüştür
+        makro_matris = np.array(makro_matris)
+        mikro_matris = np.array(mikro_matris)
+        makro_hedefler = np.array(makro_hedefler)
+        mikro_hedefler = np.array(mikro_hedefler)
+        
+        # Gübre sayısına göre en iyi kombinasyonları bul
+        en_iyi_kombinasyon = None
+        en_iyi_hata = float('inf')
+        
+        # Bütün gübrelerden max_gubre_sayisi kadar gübre seç
+        # ve en iyi kombinasyonu bul
+        
+        # Basitleştirilmiş yaklaşım: En önemli makro besin sağlayıcıları seç
+        
+        # 1. N için en iyi gübreler
+        n_indeksleri = np.argsort(-makro_matris[:, 0])[:2]  # En yüksek N içeren 2 gübre
+        
+        # 2. P için en iyi gübreler
+        p_indeksleri = np.argsort(-makro_matris[:, 1])[:2]  # En yüksek P içeren 2 gübre
+        
+        # 3. K için en iyi gübreler
+        k_indeksleri = np.argsort(-makro_matris[:, 2])[:2]  # En yüksek K içeren 2 gübre
+        
+        # 4. Ca için en iyi gübreler
+        ca_indeksleri = np.argsort(-makro_matris[:, 3])[:2]  # En yüksek Ca içeren 2 gübre
+        
+        # 5. Mg için en iyi gübreler
+        mg_indeksleri = np.argsort(-makro_matris[:, 4])[:2]  # En yüksek Mg içeren 2 gübre
+        
+        # 6. Mikro element karışımı
+        mikro_indeksleri = np.where(mikro_matris[:, 0] > 0)[0]  # Fe içeren gübreler
+        
+        # En iyi indeksleri birleştir ve tekrarları kaldır
+        secilen_indeksler = list(set(list(n_indeksleri) + list(p_indeksleri) + list(k_indeksleri) + 
+                                   list(ca_indeksleri) + list(mg_indeksleri) + list(mikro_indeksleri)))
+        
+        # Maksimum gübre sayısını sınırla
+        if len(secilen_indeksler) > max_gubre_sayisi:
+            # En önemli gübreleri tut
+            secilen_indeksler = secilen_indeksler[:max_gubre_sayisi]
+        
+        # Seçilen gübrelerden alt matrisler oluştur
+        secilen_makro_matris = makro_matris[secilen_indeksler]
+        secilen_mikro_matris = mikro_matris[secilen_indeksler]
+        secilen_gubre_isimleri = [gubre_isimleri[i] for i in secilen_indeksler]
+        secilen_gubre_idleri = [gubre_idleri[i] for i in secilen_indeksler]
+        
+        # Optimizasyon problemi tanımla
+        def hedef_fonksiyon(miktarlar):
+            # Makro besin farkları
+            makro_sonuc = np.dot(secilen_makro_matris.T, miktarlar) / self.hacim_litre
+            makro_fark = (makro_sonuc - makro_hedefler) / makro_hedefler
+            
+            # Mikro besin farkları
+            mikro_sonuc = np.dot(secilen_mikro_matris.T, miktarlar) / self.hacim_litre
+            # Mikro besinlerde sıfıra bölme hatasını önle
+            mikro_fark = np.zeros_like(mikro_hedefler)
+            for i, hedef in enumerate(mikro_hedefler):
+                if hedef > 0:
+                    mikro_fark[i] = (mikro_sonuc[i] - hedef) / hedef
+                else:
+                    mikro_fark[i] = mikro_sonuc[i]  # Hedef sıfırsa, sonucu al
+            
+            # Toplam hata
+            # Makro besinlere daha fazla ağırlık ver
+            toplam_hata = np.sum(makro_fark**2) * 3 + np.sum(mikro_fark**2)
+            
+            return toplam_hata
+        
+        # Başlangıç değerleri (eşit miktarda)
+        baslangic = np.ones(len(secilen_indeksler)) * 10
+        
+        # Sınırlar (her gübre için min_miktar ile max_miktar arası)
+        sinirlar = [(min_miktar, max_miktar) for _ in range(len(secilen_indeksler))]
+        
+        # Optimizasyon
+        sonuc = minimize(hedef_fonksiyon, baslangic, bounds=sinirlar, method='L-BFGS-B')
+        
+        # Optimum miktarlar
+        optimum_miktarlar = sonuc.x
+        
+        # Sonuç formülü oluştur
+        formul = []
+        for i, miktar in enumerate(optimum_miktarlar):
+            formul.append((secilen_gubre_idleri[i], secilen_gubre_isimleri[i], miktar))
+        
+        # Son sonuç ppm değerlerini hesapla
+        hesaplayici = BesinHesaplayici(self.hacim_litre)
+        
+        for gubre_id, _, miktar in formul:
+            hesaplayici.gubre_ekle(gubre_id, miktar)
+        
+        sonuc_ppm = hesaplayici.sonuc_hesapla(self.veritabani)
+        
+        return formul, sonuc_ppm
+
 def main():
     # Uygulama başlığı
-    st.title("🌱 HydroBuddy Türkçe")
-    st.markdown("**Hidroponik Besin Çözeltisi Hesaplayıcı**")
+    st.title("🌱 HydroBuddy Türkçe - Otomatik Formül")
+    st.markdown("**Hidroponik Besin Çözeltisi Otomatik Hesaplayıcı**")
     
     # Veritabanı ve hesaplayıcı nesnelerini oluştur
     veritabani = Veritabani()
@@ -316,6 +503,12 @@ def main():
     
     if 'eklenen_gubreler' not in st.session_state:
         st.session_state.eklenen_gubreler = []  # [(isim, id, miktar)]
+    
+    if 'otomatik_formul' not in st.session_state:
+        st.session_state.otomatik_formul = []  # [(id, isim, miktar)]
+    
+    if 'otomatik_sonuc' not in st.session_state:
+        st.session_state.otomatik_sonuc = {}
     
     # Sidebar: Bitki profili ve hacim ayarları
     with st.sidebar:
@@ -333,256 +526,4 @@ def main():
             profil_id = profiller[secili_index][0]
             
             if st.session_state.hesaplayici.profil_yukle(veritabani, profil_id):
-                st.success(f"{secili_profil} profili yüklendi!")
-            else:
-                st.error("Profil yüklenirken bir sorun oluştu.")
-        
-        # Hacim ayarı
-        st.subheader("Su Hacmi")
-        yeni_hacim = st.number_input(
-            "Çözelti hacmi (litre):",
-            min_value=1,
-            max_value=1000,
-            value=int(st.session_state.hesaplayici.hacim_litre)
-        )
-        
-        if st.button("Hacmi Güncelle"):
-            st.session_state.hesaplayici.hacim_ayarla(yeni_hacim)
-            st.success(f"Hacim {yeni_hacim} litre olarak güncellendi!")
-        
-        # Bilgi kutusu
-        st.info("""
-        **Gübre Önerileri:**
-        
-        Genel Hidroponik için:
-        - Kalsiyum Nitrat
-        - Potasyum Nitrat
-        - Mono Potasyum Fosfat
-        - Magnezyum Sülfat
-        - Mikro element karışımı
-        
-        Domates/Biber için K değerini artırın.
-        Yapraklı bitkiler için N değerini artırın.
-        """)
-    
-    # Ana bölüm: 3 sütuna böl
-    col1, col2, col3 = st.columns([1, 1, 1])
-    
-    # 1. Sütun: Gübre ekleme
-    with col1:
-        st.header("Gübre Ekle")
-        
-        # Gübre seçimi
-        gubreler = veritabani.gubre_listesi_getir(sadece_turk=True)
-        gubre_secenekler = [g[1] for g in gubreler]
-        secili_gubre = st.selectbox("Gübre seçin:", gubre_secenekler)
-        
-        secili_index = gubre_secenekler.index(secili_gubre)
-        secili_id = gubreler[secili_index][0]
-        
-        # Gübre miktarı
-        miktar = st.number_input(
-            "Miktar (gram):",
-            min_value=0.1,
-            max_value=1000.0,
-            value=1.0,
-            step=0.1,
-            format="%.1f"
-        )
-        
-        # Ekleme butonu
-        if st.button("Gübre Ekle"):
-            # Hesaplayıcıya ekle
-            st.session_state.hesaplayici.gubre_ekle(secili_id, miktar)
-            
-            # Görüntüleme için listeye ekle
-            st.session_state.eklenen_gubreler.append((secili_gubre, secili_id, miktar))
-            
-            st.success(f"{secili_gubre} ({miktar}g) eklendi!")
-    
-    # 2. Sütun: Eklenen gübreler ve hesaplama
-    with col2:
-        st.header("Eklenen Gübreler")
-        
-        if not st.session_state.eklenen_gubreler:
-            st.info("Henüz gübre eklenmedi.")
-        else:
-            # Gübre listesini tablo olarak göster
-            gubre_df = pd.DataFrame(
-                [(i+1, g[0], g[2]) for i, g in enumerate(st.session_state.eklenen_gubreler)],
-                columns=["#", "Gübre Adı", "Miktar (g)"]
-            )
-            st.table(gubre_df)
-            
-            # Gübre silme
-            silinecek = st.number_input(
-                "Silmek istediğiniz gübrenin numarası:",
-                min_value=1,
-                max_value=len(st.session_state.eklenen_gubreler),
-                value=1
-            )
-            
-            if st.button("Seçili Gübreyi Sil"):
-                indeks = silinecek - 1
-                st.session_state.hesaplayici.gubre_cikar(indeks)
-                silinen = st.session_state.eklenen_gubreler.pop(indeks)
-                st.warning(f"{silinen[0]} silindi!")
-        
-        # Tümünü temizle
-        if st.button("Tüm Gübreleri Temizle"):
-            st.session_state.hesaplayici.tum_gubreleri_temizle()
-            st.session_state.eklenen_gubreler = []
-            st.warning("Tüm gübreler temizlendi!")
-        
-        # Hesaplama butonu
-        st.markdown("---")
-        if st.button("HESAPLA", use_container_width=True):
-            st.session_state.hesaplayici.hacim_ayarla(yeni_hacim)  # Son hacim değerini kullan
-            st.success("Hesaplama tamamlandı!")
-    
-    # 3. Sütun: Sonuçlar
-    with col3:
-        st.header("Sonuçlar")
-        
-        # Hesaplama sonuçları
-        sonuclar = st.session_state.hesaplayici.sonuc_hesapla(veritabani)
-        hedefler = st.session_state.hesaplayici.hedef_ppm
-        
-        # Tabloya dönüştür
-        sonuc_data = []
-        for besin in ['N', 'P', 'K', 'Ca', 'Mg', 'S', 'Fe', 'Mn', 'Zn', 'B', 'Cu', 'Mo']:
-            hedef = hedefler[besin]
-            sonuc = sonuclar[besin]
-            
-            # Durum hesapla (Düşük, İyi, Yüksek)
-            if sonuc < hedef * 0.8:
-                durum = "⚠️ Düşük"
-            elif sonuc > hedef * 1.2:
-                durum = "⚠️ Yüksek"
-            else:
-                durum = "✅ İyi"
-            
-            sonuc_data.append([besin, f"{hedef:.2f}", f"{sonuc:.2f}", durum])
-        
-        sonuc_df = pd.DataFrame(sonuc_data, columns=["Besin", "Hedef (ppm)", "Sonuç (ppm)", "Durum"])
-        st.table(sonuc_df)
-    
-    # Grafik gösterimi (tüm genişliği kullan)
-    st.markdown("---")
-    st.header("Grafik Gösterimi")
-    
-    # Makro ve mikro besinleri ayrı ayrı göster
-    col_makro, col_mikro = st.columns(2)
-    
-    with col_makro:
-        st.subheader("Makro Besinler")
-        
-        makro_fig, ax = plt.subplots(figsize=(10, 6))
-        
-        makrolar = ['N', 'P', 'K', 'Ca', 'Mg', 'S']
-        hedef_degerler = [st.session_state.hesaplayici.hedef_ppm[b] for b in makrolar]
-        sonuc_degerler = [sonuclar[b] for b in makrolar]
-        
-        x = range(len(makrolar))
-        width = 0.35
-        
-        ax.bar(np.array(x) - width/2, hedef_degerler, width, label='Hedef', color='blue', alpha=0.6)
-        ax.bar(np.array(x) + width/2, sonuc_degerler, width, label='Sonuç', color='green', alpha=0.6)
-        
-        ax.set_ylabel('ppm')
-        ax.set_title('Makro Besinler Karşılaştırma')
-        ax.set_xticks(x)
-        ax.set_xticklabels(makrolar)
-        ax.legend()
-        
-        st.pyplot(makro_fig)
-    
-    with col_mikro:
-        st.subheader("Mikro Besinler")
-        
-        mikro_fig, ax = plt.subplots(figsize=(10, 6))
-        
-        mikrolar = ['Fe', 'Mn', 'Zn', 'B', 'Cu', 'Mo']
-        hedef_degerler = [st.session_state.hesaplayici.hedef_ppm[b] for b in mikrolar]
-        sonuc_degerler = [sonuclar[b] for b in mikrolar]
-        
-        x = range(len(mikrolar))
-        width = 0.35
-        
-        ax.bar(np.array(x) - width/2, hedef_degerler, width, label='Hedef', color='blue', alpha=0.6)
-        ax.bar(np.array(x) + width/2, sonuc_degerler, width, label='Sonuç', color='green', alpha=0.6)
-        
-        ax.set_ylabel('ppm')
-        ax.set_title('Mikro Besinler Karşılaştırma')
-        ax.set_xticks(x)
-        ax.set_xticklabels(mikrolar)
-        ax.legend()
-        
-        st.pyplot(mikro_fig)
-    
-    # Rapor indirme
-    st.markdown("---")
-    
-    def create_download_report():
-        # Rapor içeriği
-        buffer = BytesIO()
-        
-        # Besin sonuçları
-        sonuclar = st.session_state.hesaplayici.sonuc_hesapla(veritabani)
-        
-        # Pandas DataFrame kullanarak PDF raporu oluştur
-        sonuc_data = []
-        for besin in ['N', 'P', 'K', 'Ca', 'Mg', 'S', 'Fe', 'Mn', 'Zn', 'B', 'Cu', 'Mo']:
-            hedef = st.session_state.hesaplayici.hedef_ppm[besin]
-            sonuc = sonuclar[besin]
-            
-            if sonuc < hedef * 0.8:
-                durum = "Düşük"
-            elif sonuc > hedef * 1.2:
-                durum = "Yüksek"
-            else:
-                durum = "İyi"
-            
-            sonuc_data.append([besin, f"{hedef:.2f}", f"{sonuc:.2f}", durum])
-        
-        sonuc_df = pd.DataFrame(sonuc_data, columns=["Besin", "Hedef (ppm)", "Sonuç (ppm)", "Durum"])
-        
-        # Excel dosyası oluştur
-        with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-            # Gübre listesi
-            gubre_data = [(g[0], g[2]) for g in st.session_state.eklenen_gubreler]
-            gubre_df = pd.DataFrame(gubre_data, columns=["Gübre Adı", "Miktar (g)"])
-            gubre_df.to_excel(writer, sheet_name='Gübreler', index=False)
-            
-            # Sonuç tablosu
-            sonuc_df.to_excel(writer, sheet_name='Sonuçlar', index=False)
-            
-            # Ayarlar
-            ayarlar_data = [
-                ["Hacim (litre)", st.session_state.hesaplayici.hacim_litre],
-                ["Bitki Profili", secili_profil]
-            ]
-            ayarlar_df = pd.DataFrame(ayarlar_data, columns=["Ayar", "Değer"])
-            ayarlar_df.to_excel(writer, sheet_name='Ayarlar', index=False)
-        
-        return buffer
-    
-    if st.download_button(
-        label="Raporu İndir (Excel)",
-        data=create_download_report().getvalue(),
-        file_name="HydroBuddy_Rapor.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    ):
-        st.success("Rapor başarıyla indirildi!")
-    
-    # Alt bilgi
-    st.markdown("---")
-    st.markdown("""
-    <div style="text-align: center; padding: 10px;">
-        <p>HydroBuddy Türkçe Versiyonu</p>
-        <p>Orijinal: <a href="https://github.com/danielfppps/hydrobuddy">Daniel Fernandez</a> • Türkçe uyarlama: [Sizin Adınız]</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-if __name__ == "__main__":
-    main()
+                st.success(f"{secili_profil} profili y
