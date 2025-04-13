@@ -5,6 +5,7 @@ from reportlab.pdfgen import canvas
 import io
 import json
 import os
+import math
 
 # Gübre veritabanını JSON dosyasından yükle
 if not os.path.exists("gubreler.json"):
@@ -12,6 +13,7 @@ if not os.path.exists("gubreler.json"):
         "Potasyum Nitrat": {"formul": "KNO3", "besin": {"K": 0.378, "N": 0.135}, "agirlik": 101.10},
         "Potasyum Sülfat": {"formul": "K2SO4", "besin": {"K": 0.45, "S": 0.18}, "agirlik": 174.26},
         "Kalsiyum Nitrat": {"formul": "Ca(NO3)2·4H2O", "besin": {"Ca": 0.187, "N": 0.144}, "agirlik": 236.15},
+        "Kalsiyum Amonyum Nitrat": {"formul": "CAN", "besin": {"Ca": 0.19, "NO3": 0.573, "NH4": 0.722}, "agirlik": 164.00},
         "Calmag": {"formul": "Calmag", "besin": {"Ca": 0.165, "Mg": 0.06}, "agirlik": 1.0},
         "Magnezyum Sülfat": {"formul": "MgSO4·7H2O", "besin": {"Mg": 0.096, "S": 0.132}, "agirlik": 246.51},
         "Magnezyum Nitrat": {"formul": "Mg(NO3)2·6H2O", "besin": {"Mg": 0.09, "N": 0.10}, "agirlik": 256.41},
@@ -64,7 +66,19 @@ st.markdown("""
 
 # Ana sayfa
 st.title("Hidroponik Besin Çözeltisi Hesaplama (HydroBuddy Tabanlı)")
-st.write("Aşağıdan hedef besin konsantrasyonlarınızı (mmol/L cinsinden) girin:")
+st.write("Aşağıdan hedef besin konsantrasyonlarınızı (mmol/L cinsinden) ve su kaynağı değerlerini girin:")
+
+# Kullanıcıdan su kaynağı değerlerini al
+st.subheader("Su Kaynağı Değerleri")
+water_ec = st.number_input("Su Kaynağı EC (mS/cm)", min_value=0.0, value=0.0, step=0.01)
+water_ph = st.number_input("Su Kaynağı pH", min_value=0.0, value=7.0, step=0.01)
+water_no3 = st.number_input("Su Kaynağı NO3 (mmol/L)", min_value=0.0, value=0.0, step=0.01)
+water_nh4 = st.number_input("Su Kaynağı NH4 (mmol/L)", min_value=0.0, value=0.0, step=0.01)
+water_k = st.number_input("Su Kaynağı K (mmol/L)", min_value=0.0, value=0.0, step=0.01)
+water_ca = st.number_input("Su Kaynağı Ca (mmol/L)", min_value=0.0, value=0.0, step=0.01)
+water_mg = st.number_input("Su Kaynağı Mg (mmol/L)", min_value=0.0, value=0.0, step=0.01)
+water_h2po4 = st.number_input("Su Kaynağı H2PO4 (mmol/L)", min_value=0.0, value=0.0, step=0.01)
+water_so4 = st.number_input("Su Kaynağı SO4 (mmol/L)", min_value=0.0, value=0.0, step=0.01)
 
 # Kullanıcıdan hedef konsantrasyonları al
 st.subheader("Makro Besinler (mmol/L)")
@@ -90,8 +104,25 @@ tank_a_hacim = st.number_input("A Tankı Hacmi (litre)", min_value=1.0, value=10
 tank_b_hacim = st.number_input("B Tankı Hacmi (litre)", min_value=1.0, value=100.0)
 konsantrasyon = st.number_input("Stok Konsantrasyon Oranı (örneğin 100x)", min_value=1.0, value=100.0)
 
-# Kullanıcı reçetesini oluştur
-recete = {
+# Su kaynağındaki değerleri dikkate alarak hedef konsantrasyonları güncelle
+adjusted_recete = {
+    "NO3": max(0, NO3 - water_no3),
+    "H2PO4": max(0, H2PO4 - water_h2po4),
+    "SO4": max(0, SO4 - water_so4),
+    "NH4": max(0, NH4 - water_nh4),
+    "K": max(0, K - water_k),
+    "Ca": max(0, Ca - water_ca),
+    "Mg": max(0, Mg - water_mg),
+    "Fe": Fe,
+    "B": B,
+    "Mn": Mn,
+    "Zn": Zn,
+    "Cu": Cu,
+    "Mo": Mo
+}
+
+# Orijinal reçete (su değerleri dahil)
+original_recete = {
     "NO3": NO3,
     "H2PO4": H2PO4,
     "SO4": SO4,
@@ -109,28 +140,36 @@ recete = {
 
 # Reçeteyi hesapla
 if st.button("Reçeteyi Hesapla"):
-    # Anyon-Katyon dengesi hesaplama
-    anyon_me = recete["NO3"] + recete["H2PO4"] + (recete["SO4"] * 2)
-    katyon_me = recete["NH4"] + recete["K"] + (recete["Ca"] * 2) + (recete["Mg"] * 2)
-    anyon_mmol = recete["NO3"] + recete["H2PO4"] + recete["SO4"]
-    katyon_mmol = recete["NH4"] + recete["K"] + recete["Ca"] + recete["Mg"]
+    # Anyon-Katyon dengesi hesaplama (orijinal reçete ile)
+    anyon_me = original_recete["NO3"] + original_recete["H2PO4"] + (original_recete["SO4"] * 2)
+    katyon_me = original_recete["NH4"] + original_recete["K"] + (original_recete["Ca"] * 2) + (original_recete["Mg"] * 2)
+    anyon_mmol = original_recete["NO3"] + original_recete["H2PO4"] + original_recete["SO4"]
+    katyon_mmol = original_recete["NH4"] + original_recete["K"] + original_recete["Ca"] + original_recete["Mg"]
 
     st.write("**Anyon-Katyon Dengesi (Makro Besinler):**")
     tablo_denge = {
         "Anyon": ["NO3", "H2PO4", "SO4", "", "Toplam"],
-        "mmol/L (Anyon)": [recete["NO3"], recete["H2PO4"], recete["SO4"], "", anyon_mmol],
-        "me/L (Anyon)": [recete["NO3"], recete["H2PO4"], recete["SO4"] * 2, "", anyon_me],
+        "mmol/L (Anyon)": [original_recete["NO3"], original_recete["H2PO4"], original_recete["SO4"], "", anyon_mmol],
+        "me/L (Anyon)": [original_recete["NO3"], original_recete["H2PO4"], original_recete["SO4"] * 2, "", anyon_me],
         "Katyon": ["NH4", "K", "Ca", "Mg", "Toplam"],
-        "mmol/L (Katyon)": [recete["NH4"], recete["K"], recete["Ca"], recete["Mg"], katyon_mmol],
-        "me/L (Katyon)": [recete["NH4"], recete["K"], recete["Ca"] * 2, recete["Mg"] * 2, katyon_me]
+        "mmol/L (Katyon)": [original_recete["NH4"], original_recete["K"], original_recete["Ca"], original_recete["Mg"], katyon_mmol],
+        "me/L (Katyon)": [original_recete["NH4"], original_recete["K"], original_recete["Ca"] * 2, original_recete["Mg"] * 2, katyon_me]
     }
     df_denge = pd.DataFrame(tablo_denge)
     st.table(df_denge)
 
-    # EC ve pH hesaplama
-    ec = (recete["NO3"] * 0.075) + (recete["H2PO4"] * 0.090) + (recete["SO4"] * 0.120) + \
-         (recete["NH4"] * 0.073) + (recete["K"] * 0.074) + (recete["Ca"] * 0.120) + (recete["Mg"] * 0.106)
-    ph = 7.0 - (recete["H2PO4"] * 0.2 + recete["NH4"] * 0.1) + (recete["Ca"] * 0.05 + recete["Mg"] * 0.03)
+    # Gelişmiş EC ve pH hesaplama
+    # EC hesaplama (iyon etkileşim faktörü ile)
+    ec_ion = (original_recete["NO3"] * 0.075) + (original_recete["H2PO4"] * 0.090) + (original_recete["SO4"] * 0.120) + \
+             (original_recete["NH4"] * 0.073) + (original_recete["K"] * 0.074) + (original_recete["Ca"] * 0.120) + (original_recete["Mg"] * 0.106)
+    ec = (ec_ion + water_ec) * (1 - 0.1)  # Etkileşim faktörü: 0.1
+
+    # pH hesaplama (tamponlama kapasitesi ile)
+    h2po4_ratio = original_recete["H2PO4"] / (original_recete["H2PO4"] + 0.01)  # HPO₄²⁻/H₂PO₄⁻ oranı (basitleştirilmiş)
+    pka_h2po4 = 7.2
+    ph_base = pka_h2po4 + math.log10(h2po4_ratio) if h2po4_ratio > 0 else 7.0
+    ph_adjust = -(original_recete["NH4"] * 0.1) + (original_recete["Ca"] * 0.05 + original_recete["Mg"] * 0.03)
+    ph = (ph_base + water_ph) / 2 + ph_adjust  # Su pH’sı ile ortalama alınıp düzeltme yapılır
 
     st.write("**Çözeltinin Tahmini EC ve pH Değerleri:**")
     st.write(f"- **EC**: {ec:.2f} mS/cm")
@@ -140,8 +179,9 @@ if st.button("Reçeteyi Hesapla"):
     if round(anyon_me, 2) != round(katyon_me, 2):
         st.error("Anyon ve katyon me/L eşit değil! Çözelti dengesiz.")
     else:
-        # Makro besinler için gübre miktarları (mmol/L)
+        # Makro besinler için gübre miktarları (mmol/L) (su kaynağına göre ayarlanmış reçete ile)
         gubre_miktarlari_mmol = {
+            "Kalsiyum Amonyum Nitrat": {"NO3": 0.0, "NH4": 0.0, "Ca": 0.0},
             "Kalsiyum Nitrat": {"NO3": 0.0, "Ca": 0.0},
             "Magnezyum Nitrat": {"Mg": 0.0, "NO3": 0.0},
             "Mono Amonyum Fosfat": {"NH4": 0.0, "H2PO4": 0.0},
@@ -151,44 +191,67 @@ if st.button("Reçeteyi Hesapla"):
         }
 
         # Adım adım hesaplama (HydroBuddy mantığı)
-        # 1. Kalsiyum Nitrat ile Ca ve NO₃
-        if recete["Ca"] > 0:
-            gubre_miktarlari_mmol["Kalsiyum Nitrat"]["Ca"] = recete["Ca"]
-            gubre_miktarlari_mmol["Kalsiyum Nitrat"]["NO3"] = recete["Ca"] * (0.144 / 0.187) * (62 / 14)
+        # 1. Kalsiyum Amonyum Nitrat ile NO₃, NH₄ ve Ca
+        total_no3_needed = adjusted_recete["NO3"]
+        total_nh4_needed = adjusted_recete["NH4"]
+        if total_no3_needed > 0 or total_nh4_needed > 0:
+            # Önce NH₄ ihtiyacını karşılayalım
+            if total_nh4_needed > 0:
+                gubre_miktarlari_mmol["Kalsiyum Amonyum Nitrat"]["NH4"] = total_nh4_needed
+                # CAN ile gelen NO₃ ve Ca
+                gubre_miktarlari_mmol["Kalsiyum Amonyum Nitrat"]["NO3"] = total_nh4_needed * (0.573 / 0.722)
+                gubre_miktarlari_mmol["Kalsiyum Amonyum Nitrat"]["Ca"] = total_nh4_needed * (0.19 / 0.722)
+            # Kalan NO₃ ihtiyacını karşılayalım
+            remaining_no3 = adjusted_recete["NO3"] - gubre_miktarlari_mmol["Kalsiyum Amonyum Nitrat"]["NO3"]
+            if remaining_no3 > 0:
+                additional_can = remaining_no3 / 0.573
+                gubre_miktarlari_mmol["Kalsiyum Amonyum Nitrat"]["NO3"] += remaining_no3
+                gubre_miktarlari_mmol["Kalsiyum Amonyum Nitrat"]["NH4"] += additional_can * (0.722 / 0.573)
+                gubre_miktarlari_mmol["Kalsiyum Amonyum Nitrat"]["Ca"] += additional_can * (0.19 / 0.573)
 
-        # 2. Magnezyum Nitrat ile Mg ve NO₃
-        if recete["Mg"] > 0:
-            gubre_miktarlari_mmol["Magnezyum Nitrat"]["Mg"] = recete["Mg"]
-            gubre_miktarlari_mmol["Magnezyum Nitrat"]["NO3"] = recete["Mg"] * (0.10 / 0.09) * (62 / 14)
+        # 2. Kalan Ca için Kalsiyum Nitrat
+        remaining_ca = adjusted_recete["Ca"] - gubre_miktarlari_mmol["Kalsiyum Amonyum Nitrat"]["Ca"]
+        if remaining_ca > 0:
+            gubre_miktarlari_mmol["Kalsiyum Nitrat"]["Ca"] = remaining_ca
+            gubre_miktarlari_mmol["Kalsiyum Nitrat"]["NO3"] = remaining_ca * (0.144 / 0.187) * (62 / 14)
 
-        # 3. MAP ile NH₄ ve H₂PO₄
-        if recete["NH4"] > 0:
-            gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["NH4"] = recete["NH4"]
-            gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["H2PO4"] = recete["NH4"] * (0.266 / 0.17) * (31 / 18)
+        # 3. Magnezyum Nitrat ile Mg ve NO₃
+        if adjusted_recete["Mg"] > 0:
+            gubre_miktarlari_mmol["Magnezyum Nitrat"]["Mg"] = adjusted_recete["Mg"]
+            gubre_miktarlari_mmol["Magnezyum Nitrat"]["NO3"] = adjusted_recete["Mg"] * (0.10 / 0.09) * (62 / 14)
 
-        # 4. MKP ile H₂PO₄ ve K
-        remaining_H2PO4 = recete["H2PO4"] - gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["H2PO4"]
-        if remaining_H2PO4 > 0:
-            gubre_miktarlari_mmol["Mono Potasyum Fosfat"]["H2PO4"] = remaining_H2PO4
-            gubre_miktarlari_mmol["Mono Potasyum Fosfat"]["K"] = remaining_H2PO4 * (0.282 / 0.225)
+        # 4. MAP ile NH₄ ve H₂PO₄ (CAN sonrası kalan NH₄ ihtiyacı)
+        remaining_nh4 = adjusted_recete["NH4"] - gubre_miktarlari_mmol["Kalsiyum Amonyum Nitrat"]["NH4"]
+        if remaining_nh4 > 0:
+            gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["NH4"] = remaining_nh4
+            gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["H2PO4"] = remaining_nh4 * (0.266 / 0.17) * (31 / 18)
 
-        # 5. Potasyum Nitrat ile NO₃ ve K
-        remaining_NO3 = recete["NO3"] - (gubre_miktarlari_mmol["Kalsiyum Nitrat"]["NO3"] + gubre_miktarlari_mmol["Magnezyum Nitrat"]["NO3"])
-        if remaining_NO3 > 0:
-            gubre_miktarlari_mmol["Potasyum Nitrat"]["NO3"] = remaining_NO3
-            gubre_miktarlari_mmol["Potasyum Nitrat"]["K"] = remaining_NO3 * (0.378 / 0.135) * (14 / 62)
+        # 5. MKP ile H₂PO₄ ve K
+        remaining_h2po4 = adjusted_recete["H2PO4"] - gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["H2PO4"]
+        if remaining_h2po4 > 0:
+            gubre_miktarlari_mmol["Mono Potasyum Fosfat"]["H2PO4"] = remaining_h2po4
+            gubre_miktarlari_mmol["Mono Potasyum Fosfat"]["K"] = remaining_h2po4 * (0.282 / 0.225)
 
-        # 6. Potasyum Sülfat ile K ve SO₄
-        remaining_K = recete["K"] - (gubre_miktarlari_mmol["Mono Potasyum Fosfat"]["K"] + gubre_miktarlari_mmol["Potasyum Nitrat"]["K"])
-        if remaining_K > 0:
-            gubre_miktarlari_mmol["Potasyum Sülfat"]["K"] = remaining_K
-            gubre_miktarlari_mmol["Potasyum Sülfat"]["SO4"] = remaining_K * (0.18 / 0.45)
+        # 6. Potasyum Nitrat ile NO₃ ve K
+        remaining_no3 = adjusted_recete["NO3"] - (gubre_miktarlari_mmol["Kalsiyum Amonyum Nitrat"]["NO3"] + gubre_miktarlari_mmol["Kalsiyum Nitrat"]["NO3"] + gubre_miktarlari_mmol["Magnezyum Nitrat"]["NO3"])
+        if remaining_no3 > 0:
+            gubre_miktarlari_mmol["Potasyum Nitrat"]["NO3"] = remaining_no3
+            gubre_miktarlari_mmol["Potasyum Nitrat"]["K"] = remaining_no3 * (0.378 / 0.135) * (14 / 62)
+
+        # 7. Potasyum Sülfat ile K ve SO₄
+        remaining_k = adjusted_recete["K"] - (gubre_miktarlari_mmol["Mono Potasyum Fosfat"]["K"] + gubre_miktarlari_mmol["Potasyum Nitrat"]["K"])
+        if remaining_k > 0:
+            gubre_miktarlari_mmol["Potasyum Sülfat"]["K"] = remaining_k
+            gubre_miktarlari_mmol["Potasyum Sülfat"]["SO4"] = remaining_k * (0.18 / 0.45)
 
         # Gram cinsinden hesaplama (1000 litre için) - Makro besinler
         gubre_miktarlari_gram = {}
         for gubre, besinler in gubre_miktarlari_mmol.items():
             gubre_bilgi = gubreler[gubre]
-            if gubre == "Mono Amonyum Fosfat":
+            if gubre == "Kalsiyum Amonyum Nitrat":
+                miktar_mmol = besinler["NO3"]
+                miktar_gram = (miktar_mmol / 0.573) * gubre_bilgi["agirlik"]
+            elif gubre == "Mono Amonyum Fosfat":
                 miktar_mmol = besinler["NH4"]
                 miktar_gram = (miktar_mmol / (0.17 / 18)) * gubre_bilgi["agirlik"]
             elif gubre == "Mono Potasyum Fosfat":
@@ -216,8 +279,8 @@ if st.button("Reçeteyi Hesapla"):
             besin = info["besin"]
             ref_umol_L = info["ref_umol_L"]
             ref_mg_L = info["mg_L"]
-            if besin in recete and recete[besin] > 0:
-                gubre_miktarlari_gram[gubre] = (recete[besin] / ref_umol_L) * ref_mg_L
+            if besin in adjusted_recete and adjusted_recete[besin] > 0:
+                gubre_miktarlari_gram[gubre] = (adjusted_recete[besin] / ref_umol_L) * ref_mg_L
             else:
                 gubre_miktarlari_gram[gubre] = 0.0
 
@@ -226,16 +289,29 @@ if st.button("Reçeteyi Hesapla"):
         stok_b = {}
         for gubre, miktar in gubre_miktarlari_gram.items():
             stok_miktar_kg = miktar / konsantrasyon
-            if gubre in ["Kalsiyum Nitrat", "Magnezyum Nitrat", "Kalsiyum Hidroksit", "Calmag"]:
+            if gubre in ["Kalsiyum Amonyum Nitrat", "Kalsiyum Nitrat", "Magnezyum Nitrat", "Kalsiyum Hidroksit", "Calmag"]:
                 stok_a[gubre] = stok_miktar_kg
             else:
                 stok_b[gubre] = stok_miktar_kg
 
+        # Tank hacmi kontrolü
+        total_stok_a_kg = sum(stok_a.values())
+        total_stok_b_kg = sum(stok_b.values())
+        max_kg_per_liter = 1.0  # 1 litre suya yaklaşık 1 kg çözelti sığar (yaklaşık bir değer)
+        tank_a_capacity_kg = tank_a_hacim * max_kg_per_liter
+        tank_b_capacity_kg = tank_b_hacim * max_kg_per_liter
+
+        if total_stok_a_kg > tank_a_capacity_kg:
+            st.warning(f"A tankı hacmi yetersiz! {total_stok_a_kg:.2f} kg stok çözelti gerekiyor, ancak tank sadece {tank_a_capacity_kg:.2f} kg alabilir. Tank hacmini artırın veya konsantrasyon oranını düşürün.")
+        if total_stok_b_kg > tank_b_capacity_kg:
+            st.warning(f"B tankı hacmi yetersiz! {total_stok_b_kg:.2f} kg stok çözelti gerekiyor, ancak tank sadece {tank_b_capacity_kg:.2f} kg alabilir. Tank hacmini artırın veya konsantrasyon oranını düşürün.")
+
         # Gübre tablosu (makro ve mikro besinler)
         st.write("**Gübre Miktarları:**")
         tablo_gubre = {
-            "Kimyasal Bileşik": ["Kalsiyum Nitrat", "Magnezyum Nitrat", "Mono Amonyum Fosfat", "Mono Potasyum Fosfat", "Potasyum Nitrat", "Potasyum Sülfat", "Demir-EDDHA", "Boraks", "Mangan Sülfat", "Çinko Sülfat", "Bakır Sülfat", "Sodyum Molibdat", "TOPLAM"],
+            "Kimyasal Bileşik": ["Kalsiyum Amonyum Nitrat", "Kalsiyum Nitrat", "Magnezyum Nitrat", "Mono Amonyum Fosfat", "Mono Potasyum Fosfat", "Potasyum Nitrat", "Potasyum Sülfat", "Demir-EDDHA", "Boraks", "Mangan Sülfat", "Çinko Sülfat", "Bakır Sülfat", "Sodyum Molibdat", "TOPLAM"],
             "mmol/L": [
+                gubre_miktarlari_mmol["Kalsiyum Amonyum Nitrat"]["Ca"],
                 gubre_miktarlari_mmol["Kalsiyum Nitrat"]["Ca"],
                 gubre_miktarlari_mmol["Magnezyum Nitrat"]["Mg"],
                 gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["NH4"],
@@ -245,59 +321,68 @@ if st.button("Reçeteyi Hesapla"):
                 "", "", "", "", "", "", ""
             ],
             "NO3": [
+                gubre_miktarlari_mmol["Kalsiyum Amonyum Nitrat"]["NO3"],
                 gubre_miktarlari_mmol["Kalsiyum Nitrat"]["NO3"],
                 gubre_miktarlari_mmol["Magnezyum Nitrat"]["NO3"],
                 "-", "-", gubre_miktarlari_mmol["Potasyum Nitrat"]["NO3"], "-",
                 "-", "-", "-", "-", "-", "-",
-                recete["NO3"]
+                original_recete["NO3"]
             ],
             "H2PO4": [
                 "-", "-",
+                "-",
                 gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["H2PO4"],
                 gubre_miktarlari_mmol["Mono Potasyum Fosfat"]["H2PO4"],
                 "-", "-",
                 "-", "-", "-", "-", "-", "-",
-                recete["H2PO4"]
+                original_recete["H2PO4"]
             ],
             "SO4": [
                 "-", "-", "-", "-",
-                "-", gubre_miktarlari_mmol["Potasyum Sülfat"]["SO4"],
+                "-", "-",
+                gubre_miktarlari_mmol["Potasyum Sülfat"]["SO4"],
                 "-", "-", "-", "-", "-", "-",
-                recete["SO4"]
+                original_recete["SO4"]
             ],
             "NH4": [
-                "-", "-", gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["NH4"],
+                gubre_miktarlari_mmol["Kalsiyum Amonyum Nitrat"]["NH4"],
+                "-", "-",
+                gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["NH4"],
                 "-", "-", "-",
                 "-", "-", "-", "-", "-", "-",
-                recete["NH4"]
+                original_recete["NH4"]
             ],
             "K": [
                 "-", "-", "-",
+                "-",
                 gubre_miktarlari_mmol["Mono Potasyum Fosfat"]["K"],
                 gubre_miktarlari_mmol["Potasyum Nitrat"]["K"],
                 gubre_miktarlari_mmol["Potasyum Sülfat"]["K"],
                 "-", "-", "-", "-", "-", "-",
-                recete["K"]
+                original_recete["K"]
             ],
             "Ca": [
+                gubre_miktarlari_mmol["Kalsiyum Amonyum Nitrat"]["Ca"],
                 gubre_miktarlari_mmol["Kalsiyum Nitrat"]["Ca"],
-                "-", "-", "-", "-", "-",
-                "-", "-", "-", "-", "-", "-",
-                recete["Ca"]
+                "-", "-", "-", "-",
+                "-", "-", "-", "-", "-", "-", "-",
+                original_recete["Ca"]
             ],
             "Mg": [
-                "-", gubre_miktarlari_mmol["Magnezyum Nitrat"]["Mg"],
+                "-", "-",
+                gubre_miktarlari_mmol["Magnezyum Nitrat"]["Mg"],
                 "-", "-", "-", "-",
                 "-", "-", "-", "-", "-", "-",
-                recete["Mg"]
+                original_recete["Mg"]
             ],
-            "Fe (µmol/L)": ["-", "-", "-", "-", "-", "-", recete["Fe"], "-", "-", "-", "-", "-", ""],
-            "B (µmol/L)": ["-", "-", "-", "-", "-", "-", "-", recete["B"], "-", "-", "-", "-", ""],
-            "Mn (µmol/L)": ["-", "-", "-", "-", "-", "-", "-", "-", recete["Mn"], "-", "-", "-", ""],
-            "Zn (µmol/L)": ["-", "-", "-", "-", "-", "-", "-", "-", "-", recete["Zn"], "-", "-", ""],
-            "Cu (µmol/L)": ["-", "-", "-", "-", "-", "-", "-", "-", "-", "-", recete["Cu"], "-", ""],
-            "Mo (µmol/L)": ["-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", recete["Mo"], ""],
+            "Fe (µmol/L)": ["-", "-", "-", "-", "-", "-", "-", original_recete["Fe"], "-", "-", "-", "-", "-", ""],
+            "B (µmol/L)": ["-", "-", "-", "-", "-", "-", "-", "-", original_recete["B"], "-", "-", "-", "-", ""],
+            "Mn (µmol/L)": ["-", "-", "-", "-", "-", "-", "-", "-", "-", original_recete["Mn"], "-", "-", "-", ""],
+            "Zn (µmol/L)": ["-", "-", "-", "-", "-", "-", "-", "-", "-", "-", original_recete["Zn"], "-", "-", ""],
+            "Cu (µmol/L)": ["-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", original_recete["Cu"], "-", ""],
+            "Mo (µmol/L)": ["-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", original_recete["Mo"], ""],
             "Gram (1000 L)": [
+                f"{gubre_miktarlari_gram['Kalsiyum Amonyum Nitrat']:.2f}",
                 f"{gubre_miktarlari_gram['Kalsiyum Nitrat']:.2f}",
                 f"{gubre_miktarlari_gram['Magnezyum Nitrat']:.2f}",
                 f"{gubre_miktarlari_gram['Mono Amonyum Fosfat']:.2f}",
@@ -323,6 +408,58 @@ if st.button("Reçeteyi Hesapla"):
         st.write("**B Tankı Stok Çözelti (kg):**")
         for gubre, miktar in stok_b.items():
             st.write(f"{gubre}: {miktar:.4f} kg")
+
+        # Reçeteyi kaydetme
+        st.subheader("Reçeteyi Kaydet")
+        recipe_name = st.text_input("Reçete Adı Girin:")
+        if st.button("Reçeteyi Kaydet"):
+            if recipe_name:
+                saved_recipe = {
+                    "name": recipe_name,
+                    "original_recete": original_recete,
+                    "gubre_miktarlari_gram": gubre_miktarlari_gram,
+                    "konsantrasyon": konsantrasyon,
+                    "ec": ec,
+                    "ph": ph,
+                    "stok_a": stok_a,
+                    "stok_b": stok_b
+                }
+                if not os.path.exists("recipes.json"):
+                    with open("recipes.json", "w") as f:
+                        json.dump([], f)
+                with open("recipes.json", "r") as f:
+                    recipes = json.load(f)
+                recipes.append(saved_recipe)
+                with open("recipes.json", "w") as f:
+                    json.dump(recipes, f)
+                st.success(f"Reçete '{recipe_name}' başarıyla kaydedildi!")
+            else:
+                st.error("Lütfen bir reçete adı girin!")
+
+        # Kaydedilmiş reçeteleri göster
+        st.subheader("Kaydedilmiş Reçeteler")
+        if os.path.exists("recipes.json"):
+            with open("recipes.json", "r") as f:
+                recipes = json.load(f)
+            if recipes:
+                for recipe in recipes:
+                    st.write(f"**Reçete Adı:** {recipe['name']}")
+                    st.write("**Hedef Konsantrasyonlar (mmol/L ve µmol/L):**")
+                    st.write(recipe['original_recete'])
+                    st.write("**Gübre Miktarları (gram, 1000 L için):**")
+                    st.write(recipe['gubre_miktarlari_gram'])
+                    st.write(f"**Konsantrasyon Oranı:** {recipe['konsantrasyon']}x")
+                    st.write(f"**EC:** {recipe['ec']:.2f} mS/cm")
+                    st.write(f"**pH:** {recipe['ph']:.2f}")
+                    st.write("**A Tankı Stok Çözelti (kg):**")
+                    st.write(recipe['stok_a'])
+                    st.write("**B Tankı Stok Çözelti (kg):**")
+                    st.write(recipe['stok_b'])
+                    st.write("---")
+            else:
+                st.write("Henüz kaydedilmiş reçete yok.")
+        else:
+            st.write("Henüz kaydedilmiş reçete yok.")
 
         # PDF oluştur
         buffer = io.BytesIO()
