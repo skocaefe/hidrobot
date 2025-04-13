@@ -42,12 +42,13 @@ try:
     if "Amonyum Sülfat" not in gubreler:
         st.error("Amonyum Sülfat gübresi gubreler.json dosyasında bulunamadı! Dosyayı kontrol edin veya yeniden oluşturun.")
         gubreler["Amonyum Sülfat"] = {"formul": "(NH4)2SO4", "besin": {"NH4": 0.272, "SO4": 0.183}, "agirlik": 132.14}
-        with open("gubreler.json", "w") as f:
+        with open("gubreler.json", "w") sexes
             json.dump(gubreler, f)
         st.success("Amonyum Sülfat gübresi eklendi ve gubreler.json dosyası güncellendi.")
 except Exception as e:
     st.error(f"gubreler.json dosyasını yüklerken bir hata oluştu: {str(e)}")
     st.stop()
+
 # Mikro besin elementleri için referans değerler (µmol/L cinsinden)
 mikro_besinler = {
     "Demir-EDDHA": {"besin": "Fe", "ref_umol_L": 40, "mg_L": 37.280},
@@ -245,6 +246,9 @@ if st.button("Reçeteyi Hesapla"):
         if remaining_k > 0:
             gubre_miktarlari_mmol["Potasyum Sülfat"]["K"] = remaining_k
             gubre_miktarlari_mmol["Potasyum Sülfat"]["SO4"] = remaining_k * (0.18 / 0.45)
+        else:
+            gubre_miktarlari_mmol["Potasyum Sülfat"]["K"] = 0.0
+            gubre_miktarlari_mmol["Potasyum Sülfat"]["SO4"] = 0.0
 
         # 7. Kalan SO₄ ihtiyacı (Amonyum Sülfat ve Potasyum Sülfat sonrası)
         remaining_so4 = adjusted_recete["SO4"] - (gubre_miktarlari_mmol["Amonyum Sülfat"]["SO4"] + gubre_miktarlari_mmol["Potasyum Sülfat"]["SO4"])
@@ -310,40 +314,41 @@ if st.button("Reçeteyi Hesapla"):
             else:
                 stok_b[gubre] = stok_miktar_kg
 
-       # Tank hacmi kontrolü
-total_stok_a_kg = sum(stok_a.values())
-total_stok_b_kg = sum(stok_b.values())
-max_kg_per_liter = 1.0  # 1 litre suya yaklaşık 1 kg çözelti sığar (yaklaşık bir değer)
-tank_a_capacity_kg = tank_a_hacim * max_kg_per_liter
-tank_b_capacity_kg = tank_b_hacim * max_kg_per_liter
+        # Tank hacmi kontrolü
+        total_stok_a_kg = sum(stok_a.values())
+        total_stok_b_kg = sum(stok_b.values())
+        max_kg_per_liter = 1.0  # 1 litre suya yaklaşık 1 kg çözelti sığar (yaklaşık bir değer)
+        tank_a_capacity_kg = tank_a_hacim * max_kg_per_liter
+        tank_b_capacity_kg = tank_b_hacim * max_kg_per_liter
 
-# Gerekli minimum tank hacimlerini hesapla
-min_tank_a_hacim = total_stok_a_kg / max_kg_per_liter
-min_tank_b_hacim = total_stok_b_kg / max_kg_per_liter
+        # Gerekli minimum tank hacimlerini hesapla
+        min_tank_a_hacim = total_stok_a_kg / max_kg_per_liter
+        min_tank_b_hacim = total_stok_b_kg / max_kg_per_liter
 
-# Alternatif konsantrasyon oranı önerisi
-if total_stok_a_kg > tank_a_capacity_kg or total_stok_b_kg > tank_b_capacity_kg:
-    # Mevcut konsantrasyon oranı ile tankların alabileceği maksimum stok miktarına göre yeni bir konsantrasyon oranı öner
-    max_stok_a_kg = tank_a_hacim * max_kg_per_liter
-    max_stok_b_kg = tank_b_hacim * max_kg_per_liter
-    suggested_konsantrasyon_a = konsantrasyon * (max_stok_a_kg / total_stok_a_kg) if total_stok_a_kg > 0 else konsantrasyon
-    suggested_konsantrasyon_b = konsantrasyon * (max_stok_b_kg / total_stok_b_kg) if total_stok_b_kg > 0 else konsantrasyon
-    suggested_konsantrasyon = min(suggested_konsantrasyon_a, suggested_konsantrasyon_b)
+        # Alternatif konsantrasyon oranı önerisi
+        if total_stok_a_kg > tank_a_capacity_kg or total_stok_b_kg > tank_b_capacity_kg:
+            # Mevcut konsantrasyon oranı ile tankların alabileceği maksimum stok miktarına göre yeni bir konsantrasyon oranı öner
+            max_stok_a_kg = tank_a_hacim * max_kg_per_liter
+            max_stok_b_kg = tank_b_hacim * max_kg_per_liter
+            suggested_konsantrasyon_a = konsantrasyon * (max_stok_a_kg / total_stok_a_kg) if total_stok_a_kg > 0 else konsantrasyon
+            suggested_konsantrasyon_b = konsantrasyon * (max_stok_b_kg / total_stok_b_kg) if total_stok_b_kg > 0 else konsantrasyon
+            suggested_konsantrasyon = min(suggested_konsantrasyon_a, suggested_konsantrasyon_b)
 
-if total_stok_a_kg > tank_a_capacity_kg:
-    st.warning(
-        f"A tankı hacmi yetersiz! Toplam {total_stok_a_kg:.2f} kg stok çözelti gerekiyor, ancak tank sadece {tank_a_capacity_kg:.2f} kg alabilir. "
-        f"Çözüm Önerileri:\n"
-        f"- A tankı hacmini en az {min_tank_a_hacim:.2f} litreye çıkarın, veya\n"
-        f"- Stok konsantrasyon oranını {konsantrasyon:.1f}x yerine en az {suggested_konsantrasyon:.1f}x olarak ayarlayın."
-    )
-if total_stok_b_kg > tank_b_capacity_kg:
-    st.warning(
-        f"B tankı hacmi yetersiz! Toplam {total_stok_b_kg:.2f} kg stok çözelti gerekiyor, ancak tank sadece {tank_b_capacity_kg:.2f} kg alabilir. "
-        f"Çözüm Önerileri:\n"
-        f"- B tankı hacmini en az {min_tank_b_hacim:.2f} litreye çıkarın, veya\n"
-        f"- Stok konsantrasyon oranını {konsantrasyon:.1f}x yerine en az {suggested_konsantrasyon:.1f}x olarak ayarlayın."
-    )
+        if total_stok_a_kg > tank_a_capacity_kg:
+            st.warning(
+                f"A tankı hacmi yetersiz! Toplam {total_stok_a_kg:.2f} kg stok çözelti gerekiyor, ancak tank sadece {tank_a_capacity_kg:.2f} kg alabilir. "
+                f"Çözüm Önerileri:\n"
+                f"- A tankı hacmini en az {min_tank_a_hacim:.2f} litreye çıkarın, veya\n"
+                f"- Stok konsantrasyon oranını {konsantrasyon:.1f}x yerine en az {suggested_konsantrasyon:.1f}x olarak ayarlayın."
+            )
+        if total_stok_b_kg > tank_b_capacity_kg:
+            st.warning(
+                f"B tankı hacmi yetersiz! Toplam {total_stok_b_kg:.2f} kg stok çözelti gerekiyor, ancak tank sadece {tank_b_capacity_kg:.2f} kg alabilir. "
+                f"Çözüm Önerileri:\n"
+                f"- B tankı hacmini en az {min_tank_b_hacim:.2f} litreye çıkarın, veya\n"
+                f"- Stok konsantrasyon oranını {konsantrasyon:.1f}x yerine en az {suggested_konsantrasyon:.1f}x olarak ayarlayın."
+            )
+
         # Gübre tablosu (makro ve mikro besinler)
         st.write("**Gübre Miktarları:**")
         tablo_gubre = {
