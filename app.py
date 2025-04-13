@@ -35,94 +35,6 @@ if not os.path.exists("gubreler.json"):
 with open("gubreler.json", "r") as f:
     gubreler = json.load(f)
 
-# Mikro besin elementleri
-mikro_besinler = {
-    "Demir-EDDHA": {"Fe": 40, "mg_L": 37.280},
-    "Boraks": {"B": 30, "mg_L": 2.858},
-    "Mangan Sülfat": {"Mn": 5, "mg_L": 0.845},
-    "Çinko Sülfat": {"Zn": 4, "mg_L": 1.152},
-    "Bakır Sülfat": {"Cu": 0.75, "mg_L": 0.188},
-    "Sodyum Molibdat": {"Mo": 0.5, "mg_L": 0.120}
-}
-
-# Reçeteler
-receteler = {
-    "çilek": {
-        "vejetatif": {
-            "NO3": 9.00,
-            "H2PO4": 1.00,
-            "SO4": 1.00,
-            "NH4": 1.00,
-            "K": 5.00,
-            "Ca": 2.00,
-            "Mg": 1.00,
-            "EC": 1.6,
-            "pH": 5.8
-        },
-        "meyve": {
-            "NO3": 11.75,
-            "H2PO4": 1.25,
-            "SO4": 1.00,
-            "NH4": 1.00,
-            "K": 5.50,
-            "Ca": 3.25,
-            "Mg": 1.00,
-            "EC": 2.1,
-            "pH": 5.8
-        }
-    },
-    "marul": {
-        "üretim": {
-            "NO3": 10.00,
-            "H2PO4": 1.50,
-            "SO4": 1.00,
-            "NH4": 0.50,
-            "K": 5.00,
-            "Ca": 3.00,
-            "Mg": 1.00,
-            "EC": 1.8,
-            "pH": 5.8
-        }
-    },
-    "domates": {
-        "çiçeklenme": {
-            "NO3": 12.00,
-            "H2PO4": 1.50,
-            "SO4": 1.00,
-            "NH4": 0.50,
-            "K": 6.00,
-            "Ca": 3.50,
-            "Mg": 1.00,
-            "EC": 2.3,
-            "pH": 6.0
-        },
-        "meyve": {
-            "NO3": 14.00,
-            "H2PO4": 1.50,
-            "SO4": 1.00,
-            "NH4": 0.50,
-            "K": 7.00,
-            "Ca": 4.00,
-            "Mg": 1.00,
-            "EC": 2.5,
-            "pH": 6.0
-        }
-    },
-    "biber": {
-        "meyve": {
-            "NO3": 10.00,
-            "H2PO4": 1.50,
-            "SO4": 1.00,
-            "NH4": 0.50,
-            "K": 5.00,
-            "Ca": 3.00,
-            "Mg": 1.00,
-            "EC": 2.0,
-            "pH": 6.0
-        }
-    }
-}
-
 # Stil ekleme
 st.markdown("""
     <style>
@@ -141,20 +53,52 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # Ana sayfa
-st.title("Hidroponik Besin Çözeltisi Chatbot")
-st.write("Aşağıdan tank hacimleri, konsantrasyon oranı, ürün ve gelişme dönemi seçin:")
+st.title("Hidroponik Besin Çözeltisi Hesaplama (HydroBuddy Tabanlı)")
+st.write("Aşağıdan hedef besin konsantrasyonlarınızı (mmol/L cinsinden) girin:")
 
-# Kullanıcı girişleri
+# Kullanıcıdan hedef konsantrasyonları al
+st.subheader("Makro Besinler (mmol/L)")
+NO3 = st.number_input("NO3 (Nitrat Azotu)", min_value=0.0, value=0.0, step=0.01)
+H2PO4 = st.number_input("H2PO4 (Fosfat)", min_value=0.0, value=0.0, step=0.01)
+SO4 = st.number_input("SO4 (Sülfat)", min_value=0.0, value=0.0, step=0.01)
+NH4 = st.number_input("NH4 (Amonyum Azotu)", min_value=0.0, value=0.0, step=0.01)
+K = st.number_input("K (Potasyum)", min_value=0.0, value=0.0, step=0.01)
+Ca = st.number_input("Ca (Kalsiyum)", min_value=0.0, value=0.0, step=0.01)
+Mg = st.number_input("Mg (Magnezyum)", min_value=0.0, value=0.0, step=0.01)
+
+st.subheader("Mikro Besinler (µmol/L)")
+Fe = st.number_input("Fe (Demir)", min_value=0.0, value=40.0, step=0.01)
+B = st.number_input("B (Bor)", min_value=0.0, value=30.0, step=0.01)
+Mn = st.number_input("Mn (Manganez)", min_value=0.0, value=5.0, step=0.01)
+Zn = st.number_input("Zn (Çinko)", min_value=0.0, value=4.0, step=0.01)
+Cu = st.number_input("Cu (Bakır)", min_value=0.0, value=0.75, step=0.01)
+Mo = st.number_input("Mo (Molibden)", min_value=0.0, value=0.5, step=0.01)
+
+# Kullanıcıdan tank hacimleri ve konsantrasyon oranı
+st.subheader("Tank ve Konsantrasyon Bilgileri")
 tank_a_hacim = st.number_input("A Tankı Hacmi (litre)", min_value=1.0, value=100.0)
 tank_b_hacim = st.number_input("B Tankı Hacmi (litre)", min_value=1.0, value=100.0)
 konsantrasyon = st.number_input("Stok Konsantrasyon Oranı (örneğin 100x)", min_value=1.0, value=100.0)
-bitki = st.selectbox("Ürünü seçin:", list(receteler.keys()))
-asama = st.selectbox("Gelişme dönemini seçin:", list(receteler[bitki].keys()))
 
-# Reçeteyi göster
-if st.button("Reçeteyi Göster"):
-    recete = receteler[bitki][asama]
+# Kullanıcı reçetesini oluştur
+recete = {
+    "NO3": NO3,
+    "H2PO4": H2PO4,
+    "SO4": SO4,
+    "NH4": NH4,
+    "K": K,
+    "Ca": Ca,
+    "Mg": Mg,
+    "Fe": Fe,
+    "B": B,
+    "Mn": Mn,
+    "Zn": Zn,
+    "Cu": Cu,
+    "Mo": Mo
+}
 
+# Reçeteyi hesapla
+if st.button("Reçeteyi Hesapla"):
     # Anyon-Katyon dengesi hesaplama
     anyon_me = recete["NO3"] + recete["H2PO4"] + (recete["SO4"] * 2)
     katyon_me = recete["NH4"] + recete["K"] + (recete["Ca"] * 2) + (recete["Mg"] * 2)
@@ -179,32 +123,59 @@ if st.button("Reçeteyi Göster"):
     else:
         # Makro besinler için gübre miktarları (mmol/L)
         gubre_miktarlari_mmol = {
-            "Kalsiyum Nitrat": {"NO3": recete["Ca"] * 2, "Ca": recete["Ca"]},
-            "Magnezyum Nitrat": {"Mg": recete["Mg"], "NO3": 1.90},
-            "Mono Amonyum Fosfat": {"NH4": recete["NH4"], "H2PO4": 0.91},
-            "Mono Potasyum Fosfat": {"H2PO4": 0.34, "K": 0.34},
-            "Potasyum Nitrat": {"K": 2.75, "NO3": 2.73},
-            "Potasyum Sülfat": {"K": recete["K"] - 0.34 - 2.75, "SO4": 1.25}
+            "Kalsiyum Nitrat": {"NO3": 0.0, "Ca": 0.0},
+            "Magnezyum Nitrat": {"Mg": 0.0, "NO3": 0.0},
+            "Mono Amonyum Fosfat": {"NH4": 0.0, "H2PO4": 0.0},
+            "Mono Potasyum Fosfat": {"H2PO4": 0.0, "K": 0.0},
+            "Potasyum Nitrat": {"K": 0.0, "NO3": 0.0},
+            "Potasyum Sülfat": {"K": 0.0, "SO4": 0.0}
         }
+
+        # Adım adım hesaplama (HydroBuddy mantığı)
+        if recete["Ca"] > 0:
+            gubre_miktarlari_mmol["Kalsiyum Nitrat"]["Ca"] = recete["Ca"]
+            gubre_miktarlari_mmol["Kalsiyum Nitrat"]["NO3"] = recete["Ca"] * 2
+
+        if recete["Mg"] > 0:
+            gubre_miktarlari_mmol["Magnezyum Nitrat"]["Mg"] = recete["Mg"]
+            gubre_miktarlari_mmol["Magnezyum Nitrat"]["NO3"] = 1.90  # Daha önce hesaplanmış
+
+        if recete["NH4"] > 0:
+            gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["NH4"] = recete["NH4"]
+            gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["H2PO4"] = 0.91  # Daha önce hesaplanmış
+
+        if recete["H2PO4"] > 0:
+            gubre_miktarlari_mmol["Mono Potasyum Fosfat"]["H2PO4"] = 0.34  # Daha önce hesaplanmış
+            gubre_miktarlari_mmol["Mono Potasyum Fosfat"]["K"] = 0.34
+
+        remaining_NO3 = recete["NO3"] - (gubre_miktarlari_mmol["Kalsiyum Nitrat"]["NO3"] + gubre_miktarlari_mmol["Magnezyum Nitrat"]["NO3"])
+        if remaining_NO3 > 0:
+            gubre_miktarlari_mmol["Potasyum Nitrat"]["NO3"] = remaining_NO3
+            gubre_miktarlari_mmol["Potasyum Nitrat"]["K"] = remaining_NO3 * (0.378 / 0.596)
+
+        remaining_K = recete["K"] - (gubre_miktarlari_mmol["Mono Potasyum Fosfat"]["K"] + gubre_miktarlari_mmol["Potasyum Nitrat"]["K"])
+        if remaining_K > 0:
+            gubre_miktarlari_mmol["Potasyum Sülfat"]["K"] = remaining_K
+            gubre_miktarlari_mmol["Potasyum Sülfat"]["SO4"] = remaining_K * (0.18 / 0.45)
 
         # Gram cinsinden hesaplama (1000 litre için) - Makro besinler
         gubre_miktarlari_gram = {}
         for gubre, besinler in gubre_miktarlari_mmol.items():
             gubre_bilgi = gubreler[gubre]
             if gubre == "Mono Amonyum Fosfat":
-                miktar_mmol = recete["NH4"]
+                miktar_mmol = besinler["NH4"]
                 miktar_gram = (miktar_mmol / (0.17 / 18)) * gubre_bilgi["agirlik"]
             elif gubre == "Mono Potasyum Fosfat":
-                miktar_mmol = 0.34
+                miktar_mmol = besinler["H2PO4"]
                 miktar_gram = (miktar_mmol / (0.225 / 31)) * gubre_bilgi["agirlik"]
             elif gubre == "Potasyum Sülfat":
-                miktar_mmol = recete["K"] - 0.34 - 2.75
+                miktar_mmol = besinler["K"]
                 miktar_gram = (miktar_mmol / (0.45 / 39)) * gubre_bilgi["agirlik"]
             elif gubre == "Potasyum Nitrat":
-                miktar_mmol = 2.75
+                miktar_mmol = besinler["K"]
                 miktar_gram = (miktar_mmol / (0.378 / 39)) * gubre_bilgi["agirlik"]
             elif gubre == "Magnezyum Nitrat":
-                miktar_mmol = recete["Mg"]
+                miktar_mmol = besinler["Mg"]
                 miktar_gram = (miktar_mmol / (0.09 / 24)) * gubre_bilgi["agirlik"]
             else:
                 miktar_mmol = besinler["Ca"] if "Ca" in besinler else besinler["NO3"]
@@ -213,7 +184,20 @@ if st.button("Reçeteyi Göster"):
 
         # Mikro besinler için gram cinsinden hesaplama (1000 litre için)
         for gubre, besinler in mikro_besinler.items():
-            gubre_miktarlari_gram[gubre] = besinler["mg_L"]
+            if gubre == "Demir-EDDHA" and recete["Fe"] > 0:
+                gubre_miktarlari_gram[gubre] = (recete["Fe"] / 40) * 37.280
+            elif gubre == "Boraks" and recete["B"] > 0:
+                gubre_miktarlari_gram[gubre] = (recete["B"] / 30) * 2.858
+            elif gubre == "Mangan Sülfat" and recete["Mn"] > 0:
+                gubre_miktarlari_gram[gubre] = (recete["Mn"] / 5) * 0.845
+            elif gubre == "Çinko Sülfat" and recete["Zn"] > 0:
+                gubre_miktarlari_gram[gubre] = (recete["Zn"] / 4) * 1.152
+            elif gubre == "Bakır Sülfat" and recete["Cu"] > 0:
+                gubre_miktarlari_gram[gubre] = (recete["Cu"] / 0.75) * 0.188
+            elif gubre == "Sodyum Molibdat" and recete["Mo"] > 0:
+                gubre_miktarlari_gram[gubre] = (recete["Mo"] / 0.5) * 0.120
+            else:
+                gubre_miktarlari_gram[gubre] = 0.0
 
         # Tank stok çözeltileri (kg cinsinden)
         stok_a = {}
@@ -229,20 +213,69 @@ if st.button("Reçeteyi Göster"):
         st.write("**Gübre Miktarları:**")
         tablo_gubre = {
             "Kimyasal Bileşik": ["Kalsiyum Nitrat", "Magnezyum Nitrat", "Mono Amonyum Fosfat", "Mono Potasyum Fosfat", "Potasyum Nitrat", "Potasyum Sülfat", "Demir-EDDHA", "Boraks", "Mangan Sülfat", "Çinko Sülfat", "Bakır Sülfat", "Sodyum Molibdat", "TOPLAM"],
-            "mmol/L": [recete["Ca"], recete["Mg"], recete["NH4"], 0.34, 2.75, recete["K"] - 0.34 - 2.75, "", "", "", "", "", "", ""],
-            "NO3": [recete["Ca"] * 2, 1.90, "-", "-", 2.73, "-", "-", "-", "-", "-", "-", "-", recete["NO3"]],
-            "H2PO4": ["-", "-", 0.91, 0.34, "-", "-", "-", "-", "-", "-", "-", "-", recete["H2PO4"]],
-            "SO4": ["-", "-", "-", "-", "-", 1.25, "-", "-", "-", "-", "-", "-", recete["SO4"] + 0.25],
-            "NH4": ["-", "-", recete["NH4"], "-", "-", "-", "-", "-", "-", "-", "-", "-", recete["NH4"]],
-            "K": ["-", "-", "-", 0.34, 2.75, recete["K"] - 0.34 - 2.75, "-", "-", "-", "-", "-", "-", recete["K"]],
-            "Ca": [recete["Ca"], "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", recete["Ca"]],
-            "Mg": ["-", recete["Mg"], "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", recete["Mg"]],
-            "Fe (µmol/L)": ["-", "-", "-", "-", "-", "-", 40, "-", "-", "-", "-", "-", ""],
-            "B (µmol/L)": ["-", "-", "-", "-", "-", "-", "-", 30, "-", "-", "-", "-", ""],
-            "Mn (µmol/L)": ["-", "-", "-", "-", "-", "-", "-", "-", 5, "-", "-", "-", ""],
-            "Zn (µmol/L)": ["-", "-", "-", "-", "-", "-", "-", "-", "-", 4, "-", "-", ""],
-            "Cu (µmol/L)": ["-", "-", "-", "-", "-", "-", "-", "-", "-", "-", 0.75, "-", ""],
-            "Mo (µmol/L)": ["-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", 0.5, ""],
+            "mmol/L": [
+                gubre_miktarlari_mmol["Kalsiyum Nitrat"]["Ca"],
+                gubre_miktarlari_mmol["Magnezyum Nitrat"]["Mg"],
+                gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["NH4"],
+                gubre_miktarlari_mmol["Mono Potasyum Fosfat"]["H2PO4"],
+                gubre_miktarlari_mmol["Potasyum Nitrat"]["K"],
+                gubre_miktarlari_mmol["Potasyum Sülfat"]["K"],
+                "", "", "", "", "", "", ""
+            ],
+            "NO3": [
+                gubre_miktarlari_mmol["Kalsiyum Nitrat"]["NO3"],
+                gubre_miktarlari_mmol["Magnezyum Nitrat"]["NO3"],
+                "-", "-", gubre_miktarlari_mmol["Potasyum Nitrat"]["NO3"], "-",
+                "-", "-", "-", "-", "-", "-",
+                recete["NO3"]
+            ],
+            "H2PO4": [
+                "-", "-",
+                gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["H2PO4"],
+                gubre_miktarlari_mmol["Mono Potasyum Fosfat"]["H2PO4"],
+                "-", "-",
+                "-", "-", "-", "-", "-", "-",
+                recete["H2PO4"]
+            ],
+            "SO4": [
+                "-", "-", "-", "-",
+                "-", gubre_miktarlari_mmol["Potasyum Sülfat"]["SO4"],
+                "-", "-", "-", "-", "-", "-",
+                recete["SO4"] + (gubre_miktarlari_mmol["Potasyum Sülfat"]["SO4"] - recete["SO4"])
+            ],
+            "NH4": [
+                "-", "-", gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["NH4"],
+                "-", "-", "-",
+                "-", "-", "-", "-", "-", "-",
+                recete["NH4"]
+            ],
+            "K": [
+                "-", "-", "-",
+                gubre_miktarlari_mmol["Mono Potasyum Fosfat"]["K"],
+                gubre_miktarlari_mmol["Potasyum Nitrat"]["K Ascendingly True Kalsiyum Nitrat: 6.50 mmol/L
+                gubre_miktarlari_mmol["Potasyum Nitrat"]["K"],
+                gubre_miktarlari_mmol["Potasyum Sülfat"]["K"],
+                "-", "-", "-", "-", "-", "-",
+                recete["K"]
+            ],
+            "Ca": [
+                gubre_miktarlari_mmol["Kalsiyum Nitrat"]["Ca"],
+                "-", "-", "-", "-", "-",
+                "-", "-", "-", "-", "-", "-",
+                recete["Ca"]
+            ],
+            "Mg": [
+                "-", gubre_miktarlari_mmol["Magnezyum Nitrat"]["Mg"],
+                "-", "-", "-", "-",
+                "-", "-", "-", "-", "-", "-",
+                recete["Mg"]
+            ],
+            "Fe (µmol/L)": ["-", "-", "-", "-", "-", "-", recete["Fe"], "-", "-", "-", "-", "-", ""],
+            "B (µmol/L)": ["-", "-", "-", "-", "-", "-", "-", recete["B"], "-", "-", "-", "-", ""],
+            "Mn (µmol/L)": ["-", "-", "-", "-", "-", "-", "-", "-", recete["Mn"], "-", "-", "-", ""],
+            "Zn (µmol/L)": ["-", "-", "-", "-", "-", "-", "-", "-", "-", recete["Zn"], "-", "-", ""],
+            "Cu (µmol/L)": ["-", "-", "-", "-", "-", "-", "-", "-", "-", "-", recete["Cu"], "-", ""],
+            "Mo (µmol/L)": ["-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", recete["Mo"], ""],
             "Gram (1000 L)": [
                 f"{gubre_miktarlari_gram['Kalsiyum Nitrat']:.2f}",
                 f"{gubre_miktarlari_gram['Magnezyum Nitrat']:.2f}",
@@ -273,7 +306,7 @@ if st.button("Reçeteyi Göster"):
         # PDF oluştur
         buffer = io.BytesIO()
         c = canvas.Canvas(buffer, pagesize=letter)
-        c.drawString(100, 750, f"{bitki.capitalize()} ({asama}) Reçetesi")
+        c.drawString(100, 750, "Kullanıcı Tanımlı Reçete")
         y = 700
         c.drawString(100, y, "Anyon-Katyon Dengesi (Makro Besinler)")
         y -= 20
@@ -306,7 +339,7 @@ if st.button("Reçeteyi Göster"):
         st.download_button(
             label="Reçeteyi PDF Olarak İndir",
             data=buffer,
-            file_name=f"{bitki}_{asama}_recipe.pdf",
+            file_name="kullanici_tanimli_recipe.pdf",
             mime="application/pdf",
             key="download_button"
         )
