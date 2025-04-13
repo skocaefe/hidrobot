@@ -127,6 +127,15 @@ if st.button("Reçeteyi Hesapla"):
     df_denge = pd.DataFrame(tablo_denge)
     st.table(df_denge)
 
+    # EC ve pH hesaplama
+    ec = (recete["NO3"] * 0.075) + (recete["H2PO4"] * 0.090) + (recete["SO4"] * 0.120) + \
+         (recete["NH4"] * 0.073) + (recete["K"] * 0.074) + (recete["Ca"] * 0.120) + (recete["Mg"] * 0.106)
+    ph = 7.0 - (recete["H2PO4"] * 0.2 + recete["NH4"] * 0.1) + (recete["Ca"] * 0.05 + recete["Mg"] * 0.03)
+
+    st.write("**Çözeltinin Tahmini EC ve pH Değerleri:**")
+    st.write(f"- **EC**: {ec:.2f} mS/cm")
+    st.write(f"- **pH**: {ph:.2f}")
+
     # Denge kontrolü
     if round(anyon_me, 2) != round(katyon_me, 2):
         st.error("Anyon ve katyon me/L eşit değil! Çözelti dengesiz.")
@@ -145,7 +154,7 @@ if st.button("Reçeteyi Hesapla"):
         # 1. Kalsiyum Nitrat ile Ca ve NO₃
         if recete["Ca"] > 0:
             gubre_miktarlari_mmol["Kalsiyum Nitrat"]["Ca"] = recete["Ca"]
-            gubre_miktarlari_mmol["Kalsiyum Nitrat"]["NO3"] = recete["Ca"] * (0.144 / 0.187) * (62 / 14)  # NO₃-N → NO₃ dönüşümü
+            gubre_miktarlari_mmol["Kalsiyum Nitrat"]["NO3"] = recete["Ca"] * (0.144 / 0.187) * (62 / 14)
 
         # 2. Magnezyum Nitrat ile Mg ve NO₃
         if recete["Mg"] > 0:
@@ -320,6 +329,8 @@ if st.button("Reçeteyi Hesapla"):
         c = canvas.Canvas(buffer, pagesize=letter)
         c.drawString(100, 750, "Kullanıcı Tanımlı Reçete")
         y = 700
+        c.drawString(100, y, f"Tahmini EC: {ec:.2f} mS/cm, Tahmini pH: {ph:.2f}")
+        y -= 20
         c.drawString(100, y, "Anyon-Katyon Dengesi (Makro Besinler)")
         y -= 20
         for i, row in df_denge.iterrows():
