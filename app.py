@@ -35,6 +35,16 @@ if not os.path.exists("gubreler.json"):
 with open("gubreler.json", "r") as f:
     gubreler = json.load(f)
 
+# Mikro besin elementleri için referans değerler (µmol/L cinsinden)
+mikro_besinler = {
+    "Demir-EDDHA": {"besin": "Fe", "ref_umol_L": 40, "mg_L": 37.280},
+    "Boraks": {"besin": "B", "ref_umol_L": 30, "mg_L": 2.858},
+    "Mangan Sülfat": {"besin": "Mn", "ref_umol_L": 5, "mg_L": 0.845},
+    "Çinko Sülfat": {"besin": "Zn", "ref_umol_L": 4, "mg_L": 1.152},
+    "Bakır Sülfat": {"besin": "Cu", "ref_umol_L": 0.75, "mg_L": 0.188},
+    "Sodyum Molibdat": {"besin": "Mo", "ref_umol_L": 0.5, "mg_L": 0.120}
+}
+
 # Stil ekleme
 st.markdown("""
     <style>
@@ -193,19 +203,12 @@ if st.button("Reçeteyi Hesapla"):
             gubre_miktarlari_gram[gubre] = miktar_gram
 
         # Mikro besinler için gram cinsinden hesaplama (1000 litre için)
-        for gubre in mikro_besinler.keys():
-            if gubre == "Demir-EDDHA" and recete["Fe"] > 0:
-                gubre_miktarlari_gram[gubre] = (recete["Fe"] / 40) * 37.280
-            elif gubre == "Boraks" and recete["B"] > 0:
-                gubre_miktarlari_gram[gubre] = (recete["B"] / 30) * 2.858
-            elif gubre == "Mangan Sülfat" and recete["Mn"] > 0:
-                gubre_miktarlari_gram[gubre] = (recete["Mn"] / 5) * 0.845
-            elif gubre == "Çinko Sülfat" and recete["Zn"] > 0:
-                gubre_miktarlari_gram[gubre] = (recete["Zn"] / 4) * 1.152
-            elif gubre == "Bakır Sülfat" and recete["Cu"] > 0:
-                gubre_miktarlari_gram[gubre] = (recete["Cu"] / 0.75) * 0.188
-            elif gubre == "Sodyum Molibdat" and recete["Mo"] > 0:
-                gubre_miktarlari_gram[gubre] = (recete["Mo"] / 0.5) * 0.120
+        for gubre, info in mikro_besinler.items():
+            besin = info["besin"]
+            ref_umol_L = info["ref_umol_L"]
+            ref_mg_L = info["mg_L"]
+            if besin in recete and recete[besin] > 0:
+                gubre_miktarlari_gram[gubre] = (recete[besin] / ref_umol_L) * ref_mg_L
             else:
                 gubre_miktarlari_gram[gubre] = 0.0
 
