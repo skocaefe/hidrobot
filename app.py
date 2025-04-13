@@ -526,4 +526,8 @@ def main():
             profil_id = profiller[secili_index][0]
             
             if st.session_state.hesaplayici.profil_yukle(veritabani, profil_id):
-                st.success(f"{secili_profil} profili y
+                st.success(f"{secili_profil} profili yüklendi!")
+            else:
+                st.error("Profil yüklenirken bir sorun oluştu.")
+        
+        # Hac
