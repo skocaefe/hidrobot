@@ -1,360 +1,588 @@
+# -*- coding: utf-8 -*-
+# HydroBuddy Türkçe Streamlit Versiyonu
+# Orijinal: Daniel Fernandez
+# Streamlit uyarlaması: [Sizin Adınız]
+
 import streamlit as st
 import pandas as pd
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-import io
-import json
+import numpy as np
+import matplotlib.pyplot as plt
+import sqlite3
 import os
-import math
-import logging
-from typing import Dict, Any, List, Tuple
+import base64
+from io import BytesIO
 
-# Loglama yapılandırması
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+# Sayfa ayarları
+st.set_page_config(
+    page_title="HydroBuddy Türkçe",
+    page_icon="🌱",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# Gübre veritabanı için varsayılan değerler
-DEFAULT_GUBRELER = {
-    "Potasyum Nitrat": {"formul": "KNO3", "besin": {"K": 0.378, "NO3": 0.135}, "agirlik": 101.10},
-    "Potasyum Sülfat": {"formul": "K2SO4", "besin": {"K": 0.45, "SO4": 0.18}, "agirlik": 174.26},
-    "Kalsiyum Nitrat": {"formul": "Ca(NO3)2·4H2O", "besin": {"Ca": 0.187, "NO3": 0.144}, "agirlik": 236.15},
-    "Amonyum Sülfat": {"formul": "(NH4)2SO4", "besin": {"NH4": 0.272, "SO4": 0.183}, "agirlik": 132.14},
-    "Calmag": {"formul": "Calmag", "besin": {"Ca": 0.165, "Mg": 0.06}, "agirlik": 1.0},
-    "Magnezyum Sülfat": {"formul": "MgSO4·7H2O", "besin": {"Mg": 0.096, "SO4": 0.132}, "agirlik": 246.51},
-    "Magnezyum Nitrat": {"formul": "Mg(NO3)2·6H2O", "besin": {"Mg": 0.09, "NO3": 0.10}, "agirlik": 256.41},
-    "Mono Potasyum Fosfat": {"formul": "KH2PO4", "besin": {"K": 0.282, "H2PO4": 0.225}, "agirlik": 136.09},
-    "Mono Amonyum Fosfat": {"formul": "NH4H2PO4", "besin": {"H2PO4": 0.266, "NH4": 0.17}, "agirlik": 115.03},
-    "Üre Fosfat": {"formul": "H3PO4·CO(NH2)2", "besin": {"H2PO4": 0.194, "N": 0.17}, "agirlik": 1.0},
-    "Foliar Üre": {"formul": "CO(NH2)2", "besin": {"N": 0.46}, "agirlik": 60.06},
-    "Kalsiyum Klorür": {"formul": "CaCl2", "besin": {"Ca": 0.38}, "agirlik": 110.98},
-    "Potasyum Klorür": {"formul": "KCl", "besin": {"K": 0.524}, "agirlik": 74.55},
-    "WS 0-0-60+48 Cl": {"formul": "KCl", "besin": {"K": 0.498}, "agirlik": 74.55},
-    "NK 16-0-40": {"formul": "NK 16-0-40", "besin": {"K": 0.332, "N": 0.16}, "agirlik": 1.0},
-    "Mangan Sülfat": {"formul": "MnSO4·H2O", "besin": {"Mn": 0.32}, "agirlik": 169.02},
-    "Çinko Sülfat": {"formul": "ZnSO4·7H2O", "besin": {"Zn": 0.23}, "agirlik": 287.56},
-    "Boraks": {"formul": "Na2B4O7·10H2O", "besin": {"B": 0.11}, "agirlik": 381.37},
-    "Sodyum Molibdat": {"formul": "Na2MoO4·2H2O", "besin": {"Mo": 0.40}, "agirlik": 241.95},
-    "Demir-EDDHA": {"formul": "Fe-EDDHA", "besin": {"Fe": 0.04}, "agirlik": 932.00},
-    "Bakır Sülfat": {"formul": "CuSO4·5H2O", "besin": {"Cu": 0.075}, "agirlik": 250.00}
-}
+# CSS ile bazı özelleştirmeler
+st.markdown("""
+    <style>
+    .main {
+        background-color: #f0f8ff;
+    }
+    .stButton>button {
+        background-color: #4CAF50;
+        color: white;
+        font-weight: bold;
+    }
+    h1, h2, h3 {
+        color: #2E8B57;
+    }
+    .warning {
+        color: #FF5733;
+    }
+    .success {
+        color: #4CAF50;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-# Mikro besin elementleri için referans değerler (µmol/L cinsinden)
-MIKRO_BESINLER = {
-    "Demir-EDDHA": {"besin": "Fe", "ref_umol_L": 40, "mg_L": 37.280},
-    "Boraks": {"besin": "B", "ref_umol_L": 30, "mg_L": 2.858},
-    "Mangan Sülfat": {"besin": "Mn", "ref_umol_L": 5, "mg_L": 0.845},
-    "Çinko Sülfat": {"besin": "Zn", "ref_umol_L": 4, "mg_L": 1.152},
-    "Bakır Sülfat": {"besin": "Cu", "ref_umol_L": 0.75, "mg_L": 0.188},
-    "Sodyum Molibdat": {"besin": "Mo", "ref_umol_L": 0.5, "mg_L": 0.120}
-}
-
-def load_gubreler() -> Dict[str, Any]:
-    """Gübre veritabanını yükler veya oluşturur."""
-    try:
-        if not os.path.exists("gubreler.json"):
-            logger.info("gubreler.json dosyası bulunamadı, yeni bir dosya oluşturuluyor...")
-            st.warning("gubreler.json dosyası bulunamadı, yeni bir dosya oluşturuluyor...")
-            with open("gubreler.json", "w", encoding="utf-8") as f:
-                json.dump(DEFAULT_GUBRELER, f, ensure_ascii=False, indent=4)
+# Veritabanı işlemleri için sınıf
+class Veritabani:
+    def __init__(self, db_yolu="hidroponik.db"):
+        # Veritabanı oluştur (eğer yoksa)
+        self.baglanti = sqlite3.connect(db_yolu)
+        self.cursor = self.baglanti.cursor()
+        self.veritabani_olustur()
+    
+    def veritabani_olustur(self):
+        """Veritabanı tablolarını oluşturur (eğer yoksa)"""
         
-        with open("gubreler.json", "r", encoding="utf-8") as f:
-            gubreler = json.load(f)
+        # Gübreler tablosu
+        self.cursor.execute('''
+        CREATE TABLE IF NOT EXISTS gubreler (
+            id INTEGER PRIMARY KEY,
+            isim TEXT,
+            n_nitrat REAL,
+            n_amonyum REAL,
+            p REAL,
+            k REAL,
+            ca REAL,
+            mg REAL,
+            s REAL,
+            fe REAL,
+            mn REAL,
+            zn REAL,
+            b REAL,
+            cu REAL,
+            mo REAL,
+            turk_market INTEGER
+        )
+        ''')
         
-        # Amonyum Sülfat'ın varlığını kontrol et
-        if "Amonyum Sülfat" not in gubreler:
-            logger.warning("Amonyum Sülfat gübresi gübre veritabanında bulunamadı!")
-            st.error("Amonyum Sülfat gübresi gubreler.json dosyasında bulunamadı! Dosyayı kontrol edin veya yeniden oluşturun.")
-            gubreler["Amonyum Sülfat"] = DEFAULT_GUBRELER["Amonyum Sülfat"]
-            with open("gubreler.json", "w", encoding="utf-8") as f:
-                json.dump(gubreler, f, ensure_ascii=False, indent=4)
-            st.success("Amonyum Sülfat gübresi eklendi ve gubreler.json dosyası güncellendi.")
+        # Bitki profilleri tablosu
+        self.cursor.execute('''
+        CREATE TABLE IF NOT EXISTS bitki_profilleri (
+            id INTEGER PRIMARY KEY,
+            isim TEXT,
+            n REAL,
+            p REAL,
+            k REAL,
+            ca REAL,
+            mg REAL,
+            s REAL,
+            fe REAL,
+            mn REAL,
+            zn REAL,
+            b REAL,
+            cu REAL,
+            mo REAL
+        )
+        ''')
         
-        return gubreler
-    except Exception as e:
-        logger.error(f"gubreler.json dosyasını yüklerken bir hata oluştu: {str(e)}")
-        st.error(f"gubreler.json dosyasını yüklerken bir hata oluştu: {str(e)}")
-        st.stop()
+        # Türkiye'de yaygın bulunan birkaç gübre ekleyelim
+        self.turkiye_gubreleri_ekle()
+        
+        # Örnek bitki profilleri ekleyelim
+        self.ornek_profiller_ekle()
+        
+        self.baglanti.commit()
+    
+    def turkiye_gubreleri_ekle(self):
+        """Türkiye'de yaygın olarak bulunan gübreleri veritabanına ekler"""
+        
+        # Önce tabloda veri var mı kontrol edelim
+        self.cursor.execute("SELECT COUNT(*) FROM gubreler WHERE turk_market=1")
+        if self.cursor.fetchone()[0] > 0:
+            return  # Zaten eklenmiş
+        
+        # Türkiye'de yaygın bulunan gübreler
+        gubreler = [
+            ("Kalsiyum Nitrat", 14.4, 1.1, 0, 0, 19, 0, 0, 0, 0, 0, 0, 0, 0, 1),
+            ("Potasyum Nitrat", 13, 0, 0, 38, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1),
+            ("Magnezyum Sülfat (Epsom Tuzu)", 0, 0, 0, 0, 0, 9.9, 13, 0, 0, 0, 0, 0, 0, 1),
+            ("Mono Potasyum Fosfat", 0, 0, 22.3, 28.2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1),
+            ("Demir Şelat (EDTA)", 0, 0, 0, 0, 0, 0, 0, 13, 0, 0, 0, 0, 0, 1),
+            ("Mangan Sülfat", 0, 0, 0, 0, 0, 0, 0, 0, 32, 0, 0, 0, 0, 1),
+            ("Çinko Sülfat", 0, 0, 0, 0, 0, 0, 0, 0, 0, 23, 0, 0, 0, 1),
+            ("Borik Asit", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 17, 0, 0, 1),
+            ("Bakır Sülfat", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 25, 0, 1),
+            ("Sodyum Molibdat", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 39, 1)
+        ]
+        
+        for gubre in gubreler:
+            self.cursor.execute("""
+            INSERT INTO gubreler (
+                isim, n_nitrat, n_amonyum, p, k, ca, mg, s, fe, mn, zn, b, cu, mo, turk_market
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, gubre)
+        
+        self.baglanti.commit()
+    
+    def ornek_profiller_ekle(self):
+        """Örnek bitki profillerini veritabanına ekler"""
+        
+        # Önce tabloda veri var mı kontrol edelim
+        self.cursor.execute("SELECT COUNT(*) FROM bitki_profilleri")
+        if self.cursor.fetchone()[0] > 0:
+            return  # Zaten eklenmiş
+        
+        # Örnek bitki profilleri
+        profiller = [
+            ("Genel Amaçlı", 150, 50, 210, 200, 50, 65, 3, 0.5, 0.15, 0.5, 0.15, 0.1),
+            ("Domates", 180, 45, 300, 190, 50, 70, 4, 0.8, 0.3, 0.7, 0.15, 0.1),
+            ("Salatalık", 160, 60, 230, 170, 45, 60, 3, 0.5, 0.2, 0.5, 0.1, 0.05),
+            ("Marul", 120, 40, 180, 150, 40, 50, 2.5, 0.4, 0.1, 0.4, 0.1, 0.05),
+            ("Çilek", 140, 55, 220, 180, 45, 55, 3.5, 0.6, 0.25, 0.6, 0.12, 0.08)
+        ]
+        
+        for profil in profiller:
+            self.cursor.execute("""
+            INSERT INTO bitki_profilleri (
+                isim, n, p, k, ca, mg, s, fe, mn, zn, b, cu, mo
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, profil)
+        
+        self.baglanti.commit()
+    
+    def gubre_listesi_getir(self, sadece_turk=True):
+        """Gübre listesini döndürür"""
+        if sadece_turk:
+            self.cursor.execute("SELECT id, isim FROM gubreler WHERE turk_market=1")
+        else:
+            self.cursor.execute("SELECT id, isim FROM gubreler")
+        return self.cursor.fetchall()
+    
+    def gubre_bilgilerini_getir(self, gubre_id):
+        """Belirli bir gübrenin detaylarını getirir"""
+        self.cursor.execute("""
+        SELECT isim, n_nitrat, n_amonyum, p, k, ca, mg, s, fe, mn, zn, b, cu, mo
+        FROM gubreler WHERE id=?
+        """, (gubre_id,))
+        return self.cursor.fetchone()
+    
+    def bitki_profilleri_getir(self):
+        """Kayıtlı bitki profillerini döndürür"""
+        self.cursor.execute("SELECT id, isim FROM bitki_profilleri")
+        return self.cursor.fetchall()
+    
+    def profil_detaylarini_getir(self, profil_id):
+        """Belirli bir bitki profilinin detaylarını getirir"""
+        self.cursor.execute("""
+        SELECT isim, n, p, k, ca, mg, s, fe, mn, zn, b, cu, mo
+        FROM bitki_profilleri WHERE id=?
+        """, (profil_id,))
+        return self.cursor.fetchone()
+    
+    def kapat(self):
+        """Veritabanı bağlantısını kapatır"""
+        self.baglanti.close()
 
-def save_recipe(recipe_data: Dict[str, Any], recipe_name: str) -> bool:
-    """Reçeteyi JSON dosyasına kaydeder."""
-    try:
-        if not recipe_name:
-            st.error("Lütfen bir reçete adı girin!")
-            return False
-            
-        saved_recipe = {
-            "name": recipe_name,
-            "original_recete": recipe_data["original_recete"],
-            "gubre_miktarlari_gram": recipe_data["gubre_miktarlari_gram"],
-            "konsantrasyon": recipe_data["konsantrasyon"],
-            "ec": recipe_data["ec"],
-            "ph": recipe_data["ph"],
-            "stok_a": recipe_data["stok_a"],
-            "stok_b": recipe_data["stok_b"]
+# Besin çözeltisi hesaplama sınıfı
+class BesinHesaplayici:
+    def __init__(self, hacim_litre=20):
+        self.hacim_litre = hacim_litre
+        self.hedef_ppm = {
+            'N': 150,
+            'P': 50,
+            'K': 210,
+            'Ca': 200,
+            'Mg': 50,
+            'S': 65,
+            'Fe': 3,
+            'Mn': 0.5,
+            'Zn': 0.15,
+            'B': 0.5,
+            'Cu': 0.15,
+            'Mo': 0.1
+        }
+        self.secilen_gubreler = []  # (gubre_id, miktar_gram) tuple'larını içerecek
+    
+    def hacim_ayarla(self, yeni_hacim):
+        """Su hacmini değiştirir"""
+        self.hacim_litre = yeni_hacim
+    
+    def hedef_degeri_ayarla(self, besin, deger):
+        """Hedef ppm değerini değiştirir"""
+        if besin in self.hedef_ppm:
+            self.hedef_ppm[besin] = deger
+    
+    def gubre_ekle(self, gubre_id, miktar_gram):
+        """Karışıma gübre ekler"""
+        self.secilen_gubreler.append((gubre_id, miktar_gram))
+    
+    def gubre_cikar(self, index):
+        """Karışımdan gübre çıkarır"""
+        if 0 <= index < len(self.secilen_gubreler):
+            self.secilen_gubreler.pop(index)
+    
+    def tum_gubreleri_temizle(self):
+        """Tüm gübreleri temizler"""
+        self.secilen_gubreler = []
+    
+    def sonuc_hesapla(self, veritabani):
+        """Seçilen gübrelerle elde edilecek besin değerlerini hesaplar"""
+        sonuc = {
+            'N': 0,
+            'P': 0,
+            'K': 0,
+            'Ca': 0,
+            'Mg': 0,
+            'S': 0,
+            'Fe': 0,
+            'Mn': 0,
+            'Zn': 0,
+            'B': 0,
+            'Cu': 0,
+            'Mo': 0
         }
         
-        # recipes.json dosyasını kontrol et, yoksa oluştur
-        if not os.path.exists("recipes.json"):
-            with open("recipes.json", "w", encoding="utf-8") as f:
-                json.dump([], f, ensure_ascii=False, indent=4)
+        for gubre_id, miktar_gram in self.secilen_gubreler:
+            gubre_bilgi = veritabani.gubre_bilgilerini_getir(gubre_id)
+            if gubre_bilgi:
+                # N (nitrat + amonyum)
+                sonuc['N'] += (gubre_bilgi[1] + gubre_bilgi[2]) * miktar_gram / self.hacim_litre
+                # P
+                sonuc['P'] += gubre_bilgi[3] * miktar_gram / self.hacim_litre
+                # K
+                sonuc['K'] += gubre_bilgi[4] * miktar_gram / self.hacim_litre
+                # Ca
+                sonuc['Ca'] += gubre_bilgi[5] * miktar_gram / self.hacim_litre
+                # Mg
+                sonuc['Mg'] += gubre_bilgi[6] * miktar_gram / self.hacim_litre
+                # S
+                sonuc['S'] += gubre_bilgi[7] * miktar_gram / self.hacim_litre
+                # Fe
+                sonuc['Fe'] += gubre_bilgi[8] * miktar_gram / self.hacim_litre
+                # Mn
+                sonuc['Mn'] += gubre_bilgi[9] * miktar_gram / self.hacim_litre
+                # Zn
+                sonuc['Zn'] += gubre_bilgi[10] * miktar_gram / self.hacim_litre
+                # B
+                sonuc['B'] += gubre_bilgi[11] * miktar_gram / self.hacim_litre
+                # Cu
+                sonuc['Cu'] += gubre_bilgi[12] * miktar_gram / self.hacim_litre
+                # Mo
+                sonuc['Mo'] += gubre_bilgi[13] * miktar_gram / self.hacim_litre
         
-        # Mevcut reçeteleri yükle
-        with open("recipes.json", "r", encoding="utf-8") as f:
-            recipes = json.load(f)
-        
-        # Yeni reçeteyi ekle
-        recipes.append(saved_recipe)
-        
-        # Güncellenmiş reçeteleri kaydet
-        with open("recipes.json", "w", encoding="utf-8") as f:
-            json.dump(recipes, f, ensure_ascii=False, indent=4)
-        
-        st.success(f"Reçete '{recipe_name}' başarıyla kaydedildi!")
-        return True
-    except Exception as e:
-        logger.error(f"Reçete kaydederken hata: {str(e)}")
-        st.error(f"Reçete kaydederken bir hata oluştu: {str(e)}")
+        return sonuc
+    
+    def profil_yukle(self, veritabani, profil_id):
+        """Bitki profiline göre hedef değerleri ayarlar"""
+        profil = veritabani.profil_detaylarini_getir(profil_id)
+        if profil:
+            self.hedef_ppm['N'] = profil[1]
+            self.hedef_ppm['P'] = profil[2]
+            self.hedef_ppm['K'] = profil[3]
+            self.hedef_ppm['Ca'] = profil[4]
+            self.hedef_ppm['Mg'] = profil[5]
+            self.hedef_ppm['S'] = profil[6]
+            self.hedef_ppm['Fe'] = profil[7]
+            self.hedef_ppm['Mn'] = profil[8]
+            self.hedef_ppm['Zn'] = profil[9]
+            self.hedef_ppm['B'] = profil[10]
+            self.hedef_ppm['Cu'] = profil[11]
+            self.hedef_ppm['Mo'] = profil[12]
+            return True
         return False
 
-def load_recipes() -> List[Dict[str, Any]]:
-    """Kaydedilmiş reçeteleri yükler."""
-    try:
-        if os.path.exists("recipes.json"):
-            with open("recipes.json", "r", encoding="utf-8") as f:
-                return json.load(f)
-        return []
-    except Exception as e:
-        logger.error(f"Reçeteleri yüklerken hata: {str(e)}")
-        st.error(f"Reçeteleri yüklerken bir hata oluştu: {str(e)}")
-        return []
-
-def calculate_adjusted_recipe(original_recipe: Dict[str, float], water_values: Dict[str, float]) -> Dict[str, float]:
-    """Su kaynağındaki değerleri dikkate alarak hedef konsantrasyonları ayarlar."""
-    return {
-        "NO3": max(0, original_recipe["NO3"] - water_values["no3"]),
-        "H2PO4": max(0, original_recipe["H2PO4"] - water_values["h2po4"]),
-        "SO4": max(0, original_recipe["SO4"] - water_values["so4"]),
-        "NH4": max(0, original_recipe["NH4"] - water_values["nh4"]),
-        "K": max(0, original_recipe["K"] - water_values["k"]),
-        "Ca": max(0, original_recipe["Ca"] - water_values["ca"]),
-        "Mg": max(0, original_recipe["Mg"] - water_values["mg"]),
-        "Fe": original_recipe["Fe"],
-        "B": original_recipe["B"],
-        "Mn": original_recipe["Mn"],
-        "Zn": original_recipe["Zn"],
-        "Cu": original_recipe["Cu"],
-        "Mo": original_recipe["Mo"]
-    }
-
-def calculate_anyon_katyon_balance(recipe: Dict[str, float]) -> Tuple[Dict[str, List], float, float, float, float]:
-    """Anyon-Katyon dengesini hesaplar."""
-    anyon_me = recipe["NO3"] + recipe["H2PO4"] + (recipe["SO4"] * 2)
-    katyon_me = recipe["NH4"] + recipe["K"] + (recipe["Ca"] * 2) + (recipe["Mg"] * 2)
-    anyon_mmol = recipe["NO3"] + recipe["H2PO4"] + recipe["SO4"]
-    katyon_mmol = recipe["NH4"] + recipe["K"] + recipe["Ca"] + recipe["Mg"]
+def main():
+    # Uygulama başlığı
+    st.title("🌱 HydroBuddy Türkçe")
+    st.markdown("**Hidroponik Besin Çözeltisi Hesaplayıcı**")
     
-    tablo_denge = {
-        "Anyon": ["NO3", "H2PO4", "SO4", "", "Toplam"],
-        "mmol/L (Anyon)": [recipe["NO3"], recipe["H2PO4"], recipe["SO4"], "", anyon_mmol],
-        "me/L (Anyon)": [recipe["NO3"], recipe["H2PO4"], recipe["SO4"] * 2, "", anyon_me],
-        "Katyon": ["NH4", "K", "Ca", "Mg", "Toplam"],
-        "mmol/L (Katyon)": [recipe["NH4"], recipe["K"], recipe["Ca"], recipe["Mg"], katyon_mmol],
-        "me/L (Katyon)": [recipe["NH4"], recipe["K"], recipe["Ca"] * 2, recipe["Mg"] * 2, katyon_me]
-    }
+    # Veritabanı ve hesaplayıcı nesnelerini oluştur
+    veritabani = Veritabani()
     
-    return tablo_denge, anyon_me, katyon_me, anyon_mmol, katyon_mmol
-
-def calculate_ec_ph(recipe: Dict[str, float], water_ec: float, water_ph: float) -> Tuple[float, float]:
-    """EC ve pH değerlerini hesaplar."""
-    # EC hesaplama (iyon etkileşim faktörü ile)
-    ec_ion = (recipe["NO3"] * 0.075) + (recipe["H2PO4"] * 0.090) + (recipe["SO4"] * 0.120) + \
-             (recipe["NH4"] * 0.073) + (recipe["K"] * 0.074) + (recipe["Ca"] * 0.120) + (recipe["Mg"] * 0.106)
-    ec = (ec_ion + water_ec) * (1 - 0.1)  # Etkileşim faktörü: 0.1
-
-    # pH hesaplama (tamponlama kapasitesi ile)
-    h2po4_ratio = recipe["H2PO4"] / (recipe["H2PO4"] + 0.01)  # HPO₄²⁻/H₂PO₄⁻ oranı (basitleştirilmiş)
-    pka_h2po4 = 7.2
-    ph_base = pka_h2po4 + math.log10(h2po4_ratio) if h2po4_ratio > 0 else 7.0
-    ph_adjust = -(recipe["NH4"] * 0.1) + (recipe["Ca"] * 0.05 + recipe["Mg"] * 0.03)
-    ph = (ph_base + water_ph) / 2 + ph_adjust  # Su pH'sı ile ortalama alınıp düzeltme yapılır
+    # Session state ile hesaplayıcı ve formül verilerini kaydet
+    if 'hesaplayici' not in st.session_state:
+        st.session_state.hesaplayici = BesinHesaplayici()
     
-    return ec, ph
-
-def calculate_fertilizer_amounts(adjusted_recipe: Dict[str, float], gubreler: Dict[str, Any]) -> Tuple[Dict, Dict, Dict]:
-    """Gübre miktarlarını hesaplar."""
-    # Makro besinler için gübre miktarları (mmol/L) 
-    gubre_miktarlari_mmol = {
-        "Amonyum Sülfat": {"NH4": 0.0, "SO4": 0.0},
-        "Kalsiyum Nitrat": {"NO3": 0.0, "Ca": 0.0},
-        "Magnezyum Nitrat": {"Mg": 0.0, "NO3": 0.0},
-        "Mono Amonyum Fosfat": {"NH4": 0.0, "H2PO4": 0.0},
-        "Mono Potasyum Fosfat": {"H2PO4": 0.0, "K": 0.0},
-        "Potasyum Nitrat": {"K": 0.0, "NO3": 0.0},
-        "Potasyum Sülfat": {"K": 0.0, "SO4": 0.0}
-    }
-
-    # Adım adım hesaplama (HydroBuddy mantığı)
-    # 1. NH₄ ihtiyacını Amonyum Sülfat ve Mono Amonyum Fosfat ile karşıla
-    total_nh4_needed = adjusted_recipe["NH4"]
-    if total_nh4_needed > 0:
-        # Önce H₂PO₄ ihtiyacını göz önünde bulundurarak MAP kullan
-        if adjusted_recipe["H2PO4"] > 0:
-            # MAP ile hem NH₄ hem de H₂PO₄ ihtiyacını karşılamaya çalış
-            nh4_from_map = min(total_nh4_needed, adjusted_recipe["H2PO4"] / (0.266 / 0.17))  # MAP'in NH₄ katkısı
-            gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["NH4"] = nh4_from_map
-            gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["H2PO4"] = nh4_from_map * (0.266 / 0.17)
-
-        # Kalan NH₄ ihtiyacını Amonyum Sülfat ile karşıla
-        remaining_nh4 = total_nh4_needed - gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["NH4"]
-        if remaining_nh4 > 0:
-            gubre_miktarlari_mmol["Amonyum Sülfat"]["NH4"] = remaining_nh4
-            gubre_miktarlari_mmol["Amonyum Sülfat"]["SO4"] = remaining_nh4 * (0.183 / 0.272)
-
-    # 2. Kalan H₂PO₄ için Mono Potasyum Fosfat (MKP)
-    remaining_h2po4 = adjusted_recipe["H2PO4"] - gubre_miktarlari_mmol["Mono Amonyum Fosfat"]["H2PO4"]
-    if remaining_h2po4 > 0:
-        gubre_miktarlari_mmol["Mono Potasyum Fosfat"]["H2PO4"] = remaining_h2po4
-        gubre_miktarlari_mmol["Mono Potasyum Fosfat"]["K"] = remaining_h2po4 * (0.282 / 0.225)
-
-    # 3. Kalsiyum için Kalsiyum Nitrat
-    if adjusted_recipe["Ca"] > 0:
-        gubre_miktarlari_mmol["Kalsiyum Nitrat"]["Ca"] = adjusted_recipe["Ca"]
-        gubre_miktarlari_mmol["Kalsiyum Nitrat"]["NO3"] = adjusted_recipe["Ca"] * (0.144 / 0.187) * (62 / 14)
-
-    # 4. Magnezyum için Magnezyum Nitrat
-    if adjusted_recipe["Mg"] > 0:
-        gubre_miktarlari_mmol["Magnezyum Nitrat"]["Mg"] = adjusted_recipe["Mg"]
-        gubre_miktarlari_mmol["Magnezyum Nitrat"]["NO3"] = adjusted_recipe["Mg"] * (0.10 / 0.09) * (62 / 14)
-
-    # 5. Kalan NO₃ için Potasyum Nitrat
-    remaining_no3 = adjusted_recipe["NO3"] - (gubre_miktarlari_mmol["Kalsiyum Nitrat"]["NO3"] + gubre_miktarlari_mmol["Magnezyum Nitrat"]["NO3"])
-    if remaining_no3 > 0:
-        gubre_miktarlari_mmol["Potasyum Nitrat"]["NO3"] = remaining_no3
-        gubre_miktarlari_mmol["Potasyum Nitrat"]["K"] = remaining_no3 * (0.378 / 0.135) * (14 / 62)
-
-    # 6. Kalan K için Potasyum Sülfat
-    remaining_k = adjusted_recipe["K"] - (gubre_miktarlari_mmol["Mono Potasyum Fosfat"]["K"] + gubre_miktarlari_mmol["Potasyum Nitrat"]["K"])
-    if remaining_k > 0:
-        gubre_miktarlari_mmol["Potasyum Sülfat"]["K"] = remaining_k
-        gubre_miktarlari_mmol["Potasyum Sülfat"]["SO4"] = remaining_k * (0.18 / 0.45)
-    else:
-        gubre_miktarlari_mmol["Potasyum Sülfat"]["K"] = 0.0
-        gubre_miktarlari_mmol["Potasyum Sülfat"]["SO4"] = 0.0
-
-    # 7. Kalan SO₄ ihtiyacı (Amonyum Sülfat ve Potasyum Sülfat sonrası)
-    remaining_so4 = adjusted_recipe["SO4"] - (gubre_miktarlari_mmol["Amonyum Sülfat"]["SO4"] + gubre_miktarlari_mmol["Potasyum Sülfat"]["SO4"])
-    if remaining_so4 > 0:
-        additional_amonyum_sulfat = remaining_so4 / (0.183 / 0.272)
-        gubre_miktarlari_mmol["Amonyum Sülfat"]["SO4"] += remaining_so4
-        gubre_miktarlari_mmol["Amonyum Sülfat"]["NH4"] += additional_amonyum_sulfat
-
-    # Gram cinsinden hesaplama (1000 litre için) - Makro besinler
-    gubre_miktarlari_gram = {}
-    try:
-        for gubre, besinler in gubre_miktarlari_mmol.items():
-            if gubre not in gubreler:
-                logger.error(f"Hata: '{gubre}' gübresi veritabanında bulunamadı!")
-                st.error(f"Hata: '{gubre}' gübresi veritabanında bulunamadı! Lütfen gubreler.json dosyasını kontrol edin veya güncelleyin.")
-                continue
+    if 'eklenen_gubreler' not in st.session_state:
+        st.session_state.eklenen_gubreler = []  # [(isim, id, miktar)]
+    
+    # Sidebar: Bitki profili ve hacim ayarları
+    with st.sidebar:
+        st.header("Ayarlar")
+        
+        # Bitki profili seçimi
+        st.subheader("Bitki Profili")
+        
+        profiller = veritabani.bitki_profilleri_getir()
+        profil_secenekler = [p[1] for p in profiller]
+        secili_profil = st.selectbox("Profil seçin:", profil_secenekler, index=0)
+        
+        if st.button("Profili Yükle"):
+            secili_index = profil_secenekler.index(secili_profil)
+            profil_id = profiller[secili_index][0]
             
-            gubre_bilgi = gubreler[gubre]
-            try:
-                if gubre == "Amonyum Sülfat":
-                    miktar_mmol = besinler["NH4"]
-                    miktar_gram = (miktar_mmol / (0.272 / 18)) * gubre_bilgi["agirlik"] if miktar_mmol > 0 else 0.0
-                elif gubre == "Mono Amonyum Fosfat":
-                    miktar_mmol = besinler["NH4"]
-                    miktar_gram = (miktar_mmol / (0.17 / 18)) * gubre_bilgi["agirlik"] if miktar_mmol > 0 else 0.0
-                elif gubre == "Mono Potasyum Fosfat":
-                    miktar_mmol = besinler["H2PO4"]
-                    miktar_gram = (miktar_mmol / (0.225 / 31)) * gubre_bilgi["agirlik"] if miktar_mmol > 0 else 0.0
-                elif gubre == "Potasyum Sülfat":
-                    miktar_mmol = besinler["K"]
-                    miktar_gram = (miktar_mmol / (0.45 / 39)) * gubre_bilgi["agirlik"] if miktar_mmol > 0 else 0.0
-                elif gubre == "Potasyum Nitrat":
-                    miktar_mmol = besinler["NO3"]
-                    miktar_gram = (miktar_mmol / (0.135 / 14 * 62 / 62)) * gubre_bilgi["agirlik"] if miktar_mmol > 0 else 0.0
-                elif gubre == "Magnezyum Nitrat":
-                    miktar_mmol = besinler["Mg"]
-                    miktar_gram = (miktar_mmol / (0.09 / 24)) * gubre_bilgi["agirlik"] if miktar_mmol > 0 else 0.0
-                elif gubre == "Kalsiyum Nitrat":
-                    miktar_mmol = besinler["Ca"]
-                    miktar_gram = (miktar_mmol / (0.187 / 40)) * gubre_bilgi["agirlik"] if miktar_mmol > 0 else 0.0
-                else:
-                    miktar_mmol = besinler["Ca"] if "Ca" in besinler else besinler["NO3"]
-                    miktar_gram = miktar_mmol * gubre_bilgi["agirlik"] if miktar_mmol > 0 else 0.0
-                gubre_miktarlari_gram[gubre] = miktar_gram
-            except Exception as e:
-                logger.error(f"'{gubre}' gübresi için gram hesaplama sırasında bir hata oluştu: {str(e)}")
-                st.error(f"'{gubre}' gübresi için gram hesaplama sırasında bir hata oluştu: {str(e)}")
-                gubre_miktarlari_gram[gubre] = 0.0
-    except Exception as e:
-        logger.error(f"Gübre miktarlarını hesaplarken genel bir hata oluştu: {str(e)}")
-        st.error(f"Gübre miktarlarını hesaplarken bir hata oluştu: {str(e)}")
-
-    # Mikro besinler için gram cinsinden hesaplama (1000 litre için)
-    for gubre, info in MIKRO_BESINLER.items():
-        besin = info["besin"]
-        ref_umol_L = info["ref_umol_L"]
-        ref_mg_L = info["mg_L"]
-        if besin in adjusted_recipe and adjusted_recipe[besin] > 0:
-            gubre_miktarlari_gram[gubre] = (adjusted_recipe[besin] / ref_umol_L) * ref_mg_L
+            if st.session_state.hesaplayici.profil_yukle(veritabani, profil_id):
+                st.success(f"{secili_profil} profili yüklendi!")
+            else:
+                st.error("Profil yüklenirken bir sorun oluştu.")
+        
+        # Hacim ayarı
+        st.subheader("Su Hacmi")
+        yeni_hacim = st.number_input(
+            "Çözelti hacmi (litre):",
+            min_value=1,
+            max_value=1000,
+            value=int(st.session_state.hesaplayici.hacim_litre)
+        )
+        
+        if st.button("Hacmi Güncelle"):
+            st.session_state.hesaplayici.hacim_ayarla(yeni_hacim)
+            st.success(f"Hacim {yeni_hacim} litre olarak güncellendi!")
+        
+        # Bilgi kutusu
+        st.info("""
+        **Gübre Önerileri:**
+        
+        Genel Hidroponik için:
+        - Kalsiyum Nitrat
+        - Potasyum Nitrat
+        - Mono Potasyum Fosfat
+        - Magnezyum Sülfat
+        - Mikro element karışımı
+        
+        Domates/Biber için K değerini artırın.
+        Yapraklı bitkiler için N değerini artırın.
+        """)
+    
+    # Ana bölüm: 3 sütuna böl
+    col1, col2, col3 = st.columns([1, 1, 1])
+    
+    # 1. Sütun: Gübre ekleme
+    with col1:
+        st.header("Gübre Ekle")
+        
+        # Gübre seçimi
+        gubreler = veritabani.gubre_listesi_getir(sadece_turk=True)
+        gubre_secenekler = [g[1] for g in gubreler]
+        secili_gubre = st.selectbox("Gübre seçin:", gubre_secenekler)
+        
+        secili_index = gubre_secenekler.index(secili_gubre)
+        secili_id = gubreler[secili_index][0]
+        
+        # Gübre miktarı
+        miktar = st.number_input(
+            "Miktar (gram):",
+            min_value=0.1,
+            max_value=1000.0,
+            value=1.0,
+            step=0.1,
+            format="%.1f"
+        )
+        
+        # Ekleme butonu
+        if st.button("Gübre Ekle"):
+            # Hesaplayıcıya ekle
+            st.session_state.hesaplayici.gubre_ekle(secili_id, miktar)
+            
+            # Görüntüleme için listeye ekle
+            st.session_state.eklenen_gubreler.append((secili_gubre, secili_id, miktar))
+            
+            st.success(f"{secili_gubre} ({miktar}g) eklendi!")
+    
+    # 2. Sütun: Eklenen gübreler ve hesaplama
+    with col2:
+        st.header("Eklenen Gübreler")
+        
+        if not st.session_state.eklenen_gubreler:
+            st.info("Henüz gübre eklenmedi.")
         else:
-            gubre_miktarlari_gram[gubre] = 0.0
-
-    return gubre_miktarlari_mmol, gubre_miktarlari_gram
-
-def create_stock_solutions(gubre_miktarlari_gram: Dict[str, float], konsantrasyon: float) -> Tuple[Dict[str, float], Dict[str, float]]:
-    """A ve B tanklarındaki stok çözeltileri hesaplar."""
-    stok_a = {}
-    stok_b = {}
+            # Gübre listesini tablo olarak göster
+            gubre_df = pd.DataFrame(
+                [(i+1, g[0], g[2]) for i, g in enumerate(st.session_state.eklenen_gubreler)],
+                columns=["#", "Gübre Adı", "Miktar (g)"]
+            )
+            st.table(gubre_df)
+            
+            # Gübre silme
+            silinecek = st.number_input(
+                "Silmek istediğiniz gübrenin numarası:",
+                min_value=1,
+                max_value=len(st.session_state.eklenen_gubreler),
+                value=1
+            )
+            
+            if st.button("Seçili Gübreyi Sil"):
+                indeks = silinecek - 1
+                st.session_state.hesaplayici.gubre_cikar(indeks)
+                silinen = st.session_state.eklenen_gubreler.pop(indeks)
+                st.warning(f"{silinen[0]} silindi!")
+        
+        # Tümünü temizle
+        if st.button("Tüm Gübreleri Temizle"):
+            st.session_state.hesaplayici.tum_gubreleri_temizle()
+            st.session_state.eklenen_gubreler = []
+            st.warning("Tüm gübreler temizlendi!")
+        
+        # Hesaplama butonu
+        st.markdown("---")
+        if st.button("HESAPLA", use_container_width=True):
+            st.session_state.hesaplayici.hacim_ayarla(yeni_hacim)  # Son hacim değerini kullan
+            st.success("Hesaplama tamamlandı!")
     
-    for gubre, miktar in gubre_miktarlari_gram.items():
-        stok_miktar_kg = miktar / konsantrasyon
-        if gubre in ["Kalsiyum Nitrat", "Magnezyum Nitrat", "Kalsiyum Hidroksit", "Calmag"]:
-            stok_a[gubre] = stok_miktar_kg
-        else:
-            stok_b[gubre] = stok_miktar_kg
+    # 3. Sütun: Sonuçlar
+    with col3:
+        st.header("Sonuçlar")
+        
+        # Hesaplama sonuçları
+        sonuclar = st.session_state.hesaplayici.sonuc_hesapla(veritabani)
+        hedefler = st.session_state.hesaplayici.hedef_ppm
+        
+        # Tabloya dönüştür
+        sonuc_data = []
+        for besin in ['N', 'P', 'K', 'Ca', 'Mg', 'S', 'Fe', 'Mn', 'Zn', 'B', 'Cu', 'Mo']:
+            hedef = hedefler[besin]
+            sonuc = sonuclar[besin]
+            
+            # Durum hesapla (Düşük, İyi, Yüksek)
+            if sonuc < hedef * 0.8:
+                durum = "⚠️ Düşük"
+            elif sonuc > hedef * 1.2:
+                durum = "⚠️ Yüksek"
+            else:
+                durum = "✅ İyi"
+            
+            sonuc_data.append([besin, f"{hedef:.2f}", f"{sonuc:.2f}", durum])
+        
+        sonuc_df = pd.DataFrame(sonuc_data, columns=["Besin", "Hedef (ppm)", "Sonuç (ppm)", "Durum"])
+        st.table(sonuc_df)
     
-    return stok_a, stok_b
-
-def check_tank_capacity(stok_a: Dict[str, float], stok_b: Dict[str, float], 
-                      tank_a_hacim: float, tank_b_hacim: float, 
-                      konsantrasyon: float) -> Dict[str, Any]:
-    """Tank kapasitelerini kontrol eder ve uyarıları hazırlar."""
-    warnings = {}
-    max_kg_per_liter = 1.0  # 1 litre suya yaklaşık 1 kg çözelti sığar (yaklaşık bir değer)
+    # Grafik gösterimi (tüm genişliği kullan)
+    st.markdown("---")
+    st.header("Grafik Gösterimi")
     
-    # Tank hacmi kontrolü
-    total_stok_a_kg = sum(stok_a.values())
-    total_stok_b_kg = sum(stok_b.values())
-    tank_a_capacity_kg = tank_a_hacim * max_kg_per_liter
-    tank_b_capacity_kg = tank_b_hacim * max_kg_per_liter
-
-    # Gerekli minimum tank hacimlerini hesapla
-    min_tank_a_hacim = total_stok_a_kg / max_kg_per_liter
-    min_tank_b_hacim = total_stok_b_kg / max_kg_per_liter
-
-    # Alternatif konsantrasyon oranı önerisi
-    if total_stok_a_kg > tank_a_capacity_kg or total_stok_b_kg > tank_b_capacity_kg:
-        # Mevcut konsantrasyon oranı ile tankların alabileceği maksimum stok miktarına göre yeni bir konsantrasyon oranı öner
-        max_stok_a_kg = tank_a_hacim * max_kg_per_liter
-        max_stok_b_kg = tank_b_hacim * max_kg_per_liter
-        suggested_konsantrasyon_a = konsantrasyon * (max_stok_a_kg / total_stok_a_kg) if total_stok_a_kg > 0 else konsantrasyon
-        suggested_konsantrasyon_b = konsantrasyon * (max_stok_b_kg / total_stok_b_kg) if total_stok_b_kg > 0 else konsantrasyon
-        suggested_konsantrasyon = min(suggested_konsantrasyon_a, suggested_konsantrasyon_b)
-    else:
-        suggested_konsantrasyon = konsantrasyon
-
-    if total_stok_a_kg > tank_a_capacity_kg:
-        warnings["tank_a"] = {
-            "message": f"A tankı hacmi yetersiz! Toplam {total_stok_a_kg:.2f} kg stok çözelti gerekiyor, ancak tank sadece {tank_a_capacity_kg:.2f} kg alabilir.",
-            "suggestions": [
-                f"A tankı hacmini en az {min_tank_a_hacim:.2f} litreye çıkarın, veya",
-                f"Stok konsantrasyon oranını {konsantrasyon:.1f}x yerine en az {suggested_konsantrasyon:.1f}x olarak ayarlayın."
+    # Makro ve mikro besinleri ayrı ayrı göster
+    col_makro, col_mikro = st.columns(2)
+    
+    with col_makro:
+        st.subheader("Makro Besinler")
+        
+        makro_fig, ax = plt.subplots(figsize=(10, 6))
+        
+        makrolar = ['N', 'P', 'K', 'Ca', 'Mg', 'S']
+        hedef_degerler = [st.session_state.hesaplayici.hedef_ppm[b] for b in makrolar]
+        sonuc_degerler = [sonuclar[b] for b in makrolar]
+        
+        x = range(len(makrolar))
+        width = 0.35
+        
+        ax.bar(np.array(x) - width/2, hedef_degerler, width, label='Hedef', color='blue', alpha=0.6)
+        ax.bar(np.array(x) + width/2, sonuc_degerler, width, label='Sonuç', color='green', alpha=0.6)
+        
+        ax.set_ylabel('ppm')
+        ax.set_title('Makro Besinler Karşılaştırma')
+        ax.set_xticks(x)
+        ax.set_xticklabels(makrolar)
+        ax.legend()
+        
+        st.pyplot(makro_fig)
+    
+    with col_mikro:
+        st.subheader("Mikro Besinler")
+        
+        mikro_fig, ax = plt.subplots(figsize=(10, 6))
+        
+        mikrolar = ['Fe', 'Mn', 'Zn', 'B', 'Cu', 'Mo']
+        hedef_degerler = [st.session_state.hesaplayici.hedef_ppm[b] for b in mikrolar]
+        sonuc_degerler = [sonuclar[b] for b in mikrolar]
+        
+        x = range(len(mikrolar))
+        width = 0.35
+        
+        ax.bar(np.array(x) - width/2, hedef_degerler, width, label='Hedef', color='blue', alpha=0.6)
+        ax.bar(np.array(x) + width/2, sonuc_degerler, width, label='Sonuç', color='green', alpha=0.6)
+        
+        ax.set_ylabel('ppm')
+        ax.set_title('Mikro Besinler Karşılaştırma')
+        ax.set_xticks(x)
+        ax.set_xticklabels(mikrolar)
+        ax.legend()
+        
+        st.pyplot(mikro_fig)
+    
+    # Rapor indirme
+    st.markdown("---")
+    
+    def create_download_report():
+        # Rapor içeriği
+        buffer = BytesIO()
+        
+        # Besin sonuçları
+        sonuclar = st.session_state.hesaplayici.sonuc_hesapla(veritabani)
+        
+        # Pandas DataFrame kullanarak PDF raporu oluştur
+        sonuc_data = []
+        for besin in ['N', 'P', 'K', 'Ca', 'Mg', 'S', 'Fe', 'Mn', 'Zn', 'B', 'Cu', 'Mo']:
+            hedef = st.session_state.hesaplayici.hedef_ppm[besin]
+            sonuc = sonuclar[besin]
+            
+            if sonuc < hedef * 0.8:
+                durum = "Düşük"
+            elif sonuc > hedef * 1.2:
+                durum = "Yüksek"
+            else:
+                durum = "İyi"
+            
+            sonuc_data.append([besin, f"{hedef:.2f}", f"{sonuc:.2f}", durum])
+        
+        sonuc_df = pd.DataFrame(sonuc_data, columns=["Besin", "Hedef (ppm)", "Sonuç (ppm)", "Durum"])
+        
+        # Excel dosyası oluştur
+        with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+            # Gübre listesi
+            gubre_data = [(g[0], g[2]) for g in st.session_state.eklenen_gubreler]
+            gubre_df = pd.DataFrame(gubre_data, columns=["Gübre Adı", "Miktar (g)"])
+            gubre_df.to_excel(writer, sheet_name='Gübreler', index=False)
+            
+            # Sonuç tablosu
+            sonuc_df.to_excel(writer, sheet_name='Sonuçlar', index=False)
+            
+            # Ayarlar
+            ayarlar_data = [
+                ["Hacim (litre)", st.session_state.hesaplayici.hacim_litre],
+                ["Bitki Profili", secili_profil]
             ]
-        }
+            ayarlar_df = pd.DataFrame(ayarlar_data, columns=["Ayar", "Değer"])
+            ayarlar_df.to_excel(writer, sheet_name='Ayarlar', index=False)
+        
+        return buffer
     
-    if total_stok_b_kg > tank_b_capacity_kg:
-        warnings["tank_b"] = {
-            "message": f"B tankı hacmi yetersiz! Toplam {total_stok_b_kg:.2f} kg stok çözelti gerekiyor, ancak tank sadece {tank_b_capacity_kg:.2f} kg alabilir.",
+    if st.download_button(
+        label="Raporu İndir (Excel)",
+        data=create_download_report().getvalue(),
+        file_name="HydroBuddy_Rapor.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    ):
+        st.success("Rapor başarıyla indirildi!")
+    
+    # Alt bilgi
+    st.markdown("---")
+    st.markdown("""
+    <div style="text-align: center; padding: 10px;">
+        <p>HydroBuddy Türkçe Versiyonu</p>
+        <p>Orijinal: <a href="https://github.com/danielfppps/hydrobuddy">Daniel Fernandez</a> • Türkçe uyarlama: [Sizin Adınız]</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+if __name__ == "__main__":
+    main()
