@@ -42,13 +42,12 @@ try:
     if "Amonyum Sülfat" not in gubreler:
         st.error("Amonyum Sülfat gübresi gubreler.json dosyasında bulunamadı! Dosyayı kontrol edin veya yeniden oluşturun.")
         gubreler["Amonyum Sülfat"] = {"formul": "(NH4)2SO4", "besin": {"NH4": 0.272, "SO4": 0.183}, "agirlik": 132.14}
-        with open("gubreler.json", "w") sexes
+        with open("gubreler.json", "w") as f:
             json.dump(gubreler, f)
         st.success("Amonyum Sülfat gübresi eklendi ve gubreler.json dosyası güncellendi.")
 except Exception as e:
     st.error(f"gubreler.json dosyasını yüklerken bir hata oluştu: {str(e)}")
     st.stop()
-
 # Mikro besin elementleri için referans değerler (µmol/L cinsinden)
 mikro_besinler = {
     "Demir-EDDHA": {"besin": "Fe", "ref_umol_L": 40, "mg_L": 37.280},
