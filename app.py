@@ -3,32 +3,39 @@ import pandas as pd
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import io
+import json
+import os
 
-# Gübre listesi (makro ve mikro besinler için)
-gubreler = {
-    "Potasyum Nitrat": {"formul": "KNO3", "besin": {"K": 0.378, "N": 0.135}, "agirlik": 101.10},
-    "Potasyum Sülfat": {"formul": "K2SO4", "besin": {"K": 0.45, "S": 0.18}, "agirlik": 174.26},
-    "Kalsiyum Nitrat": {"formul": "Ca(NO3)2·4H2O", "besin": {"Ca": 0.187, "N": 0.144}, "agirlik": 236.15},
-    "Calmag": {"formul": "Calmag", "besin": {"Ca": 0.165, "Mg": 0.06}, "agirlik": 1.0},
-    "Magnezyum Sülfat": {"formul": "MgSO4·7H2O", "besin": {"Mg": 0.096, "S": 0.132}, "agirlik": 246.51},
-    "Magnezyum Nitrat": {"formul": "Mg(NO3)2·6H2O", "besin": {"Mg": 0.09, "N": 0.10}, "agirlik": 256.41},
-    "Mono Potasyum Fosfat": {"formul": "KH2PO4", "besin": {"K": 0.282, "P": 0.225}, "agirlik": 136.09},
-    "Mono Amonyum Fosfat": {"formul": "NH4H2PO4", "besin": {"P": 0.266, "N": 0.12, "NH4": 0.17}, "agirlik": 115.03},
-    "Üre Fosfat": {"formul": "H3PO4·CO(NH2)2", "besin": {"P": 0.194, "N": 0.17}, "agirlik": 1.0},
-    "Foliar Üre": {"formul": "CO(NH2)2", "besin": {"N": 0.46}, "agirlik": 60.06},
-    "Kalsiyum Klorür": {"formul": "CaCl2", "besin": {"Ca": 0.38}, "agirlik": 110.98},
-    "Potasyum Klorür": {"formul": "KCl", "besin": {"K": 0.524}, "agirlik": 74.55},
-    "WS 0-0-60+48 Cl": {"formul": "KCl", "besin": {"K": 0.498}, "agirlik": 74.55},
-    "NK 16-0-40": {"formul": "NK 16-0-40", "besin": {"K": 0.332, "N": 0.16}, "agirlik": 1.0},
-    "Mangan Sülfat": {"formul": "MnSO4·H2O", "besin": {"Mn": 0.32}, "agirlik": 169.02},
-    "Çinko Sülfat": {"formul": "ZnSO4·7H2O", "besin": {"Zn": 0.23}, "agirlik": 287.56},
-    "Boraks": {"formul": "Na2B4O7·10H2O", "besin": {"B": 0.11}, "agirlik": 381.37},
-    "Sodyum Molibdat": {"formul": "Na2MoO4·2H2O", "besin": {"Mo": 0.40}, "agirlik": 241.95},
-    "Demir-EDDHA": {"formul": "Fe-EDDHA", "besin": {"Fe": 0.04}, "agirlik": 932.00},
-    "Bakır Sülfat": {"formul": "CuSO4·5H2O", "besin": {"Cu": 0.075}, "agirlik": 250.00}
-}
+# Gübre veritabanını JSON dosyasından yükle
+if not os.path.exists("gubreler.json"):
+    gubreler = {
+        "Potasyum Nitrat": {"formul": "KNO3", "besin": {"K": 0.378, "N": 0.135}, "agirlik": 101.10},
+        "Potasyum Sülfat": {"formul": "K2SO4", "besin": {"K": 0.45, "S": 0.18}, "agirlik": 174.26},
+        "Kalsiyum Nitrat": {"formul": "Ca(NO3)2·4H2O", "besin": {"Ca": 0.187, "N": 0.144}, "agirlik": 236.15},
+        "Calmag": {"formul": "Calmag", "besin": {"Ca": 0.165, "Mg": 0.06}, "agirlik": 1.0},
+        "Magnezyum Sülfat": {"formul": "MgSO4·7H2O", "besin": {"Mg": 0.096, "S": 0.132}, "agirlik": 246.51},
+        "Magnezyum Nitrat": {"formul": "Mg(NO3)2·6H2O", "besin": {"Mg": 0.09, "N": 0.10}, "agirlik": 256.41},
+        "Mono Potasyum Fosfat": {"formul": "KH2PO4", "besin": {"K": 0.282, "P": 0.225}, "agirlik": 136.09},
+        "Mono Amonyum Fosfat": {"formul": "NH4H2PO4", "besin": {"P": 0.266, "N": 0.12, "NH4": 0.17}, "agirlik": 115.03},
+        "Üre Fosfat": {"formul": "H3PO4·CO(NH2)2", "besin": {"P": 0.194, "N": 0.17}, "agirlik": 1.0},
+        "Foliar Üre": {"formul": "CO(NH2)2", "besin": {"N": 0.46}, "agirlik": 60.06},
+        "Kalsiyum Klorür": {"formul": "CaCl2", "besin": {"Ca": 0.38}, "agirlik": 110.98},
+        "Potasyum Klorür": {"formul": "KCl", "besin": {"K": 0.524}, "agirlik": 74.55},
+        "WS 0-0-60+48 Cl": {"formul": "KCl", "besin": {"K": 0.498}, "agirlik": 74.55},
+        "NK 16-0-40": {"formul": "NK 16-0-40", "besin": {"K": 0.332, "N": 0.16}, "agirlik": 1.0},
+        "Mangan Sülfat": {"formul": "MnSO4·H2O", "besin": {"Mn": 0.32}, "agirlik": 169.02},
+        "Çinko Sülfat": {"formul": "ZnSO4·7H2O", "besin": {"Zn": 0.23}, "agirlik": 287.56},
+        "Boraks": {"formul": "Na2B4O7·10H2O", "besin": {"B": 0.11}, "agirlik": 381.37},
+        "Sodyum Molibdat": {"formul": "Na2MoO4·2H2O", "besin": {"Mo": 0.40}, "agirlik": 241.95},
+        "Demir-EDDHA": {"formul": "Fe-EDDHA", "besin": {"Fe": 0.04}, "agirlik": 932.00},
+        "Bakır Sülfat": {"formul": "CuSO4·5H2O", "besin": {"Cu": 0.075}, "agirlik": 250.00}
+    }
+    with open("gubreler.json", "w") as f:
+        json.dump(gubreler, f)
+with open("gubreler.json", "r") as f:
+    gubreler = json.load(f)
 
-# Mikro besin elementleri (her reçeteye eklenecek)
+# Mikro besin elementleri
 mikro_besinler = {
     "Demir-EDDHA": {"Fe": 40, "mg_L": 37.280},
     "Boraks": {"B": 30, "mg_L": 2.858},
@@ -38,7 +45,7 @@ mikro_besinler = {
     "Sodyum Molibdat": {"Mo": 0.5, "mg_L": 0.120}
 }
 
-# Reçeteler (dengeli hale getirildi)
+# Reçeteler
 receteler = {
     "çilek": {
         "vejetatif": {
@@ -148,7 +155,7 @@ asama = st.selectbox("Gelişme dönemini seçin:", list(receteler[bitki].keys())
 if st.button("Reçeteyi Göster"):
     recete = receteler[bitki][asama]
 
-    # Anyon-Katyon dengesi hesaplama (mikro besinler dahil edilmez)
+    # Anyon-Katyon dengesi hesaplama
     anyon_me = recete["NO3"] + recete["H2PO4"] + (recete["SO4"] * 2)
     katyon_me = recete["NH4"] + recete["K"] + (recete["Ca"] * 2) + (recete["Mg"] * 2)
     anyon_mmol = recete["NO3"] + recete["H2PO4"] + recete["SO4"]
