@@ -4,40 +4,36 @@ import pandas as pd
 # Sayfa ayarları
 st.set_page_config(page_title="HydroBuddy Türkçe", page_icon="🌱", layout="wide")
 
-# Başlık ve açıklama
-st.title("🌱 HydroBuddy Türkçe")
-st.markdown("Hidroponik besin çözeltisi hesaplama aracı")
-
 # İyon değerlikleri
 iyon_degerlikleri = {
     "NO3": -1, "H2PO4": -1, "SO4": -2,
     "NH4": 1, "K": 1, "Ca": 2, "Mg": 2
 }
 
-# Gübre bilgileri
+# Gübre bilgileri (çözünürlük g/100ml suda)
 gubreler = {
     "Kalsiyum Nitrat": {"formul": "Ca(NO3)2.4H2O", "agirlik": 236.15, "tank": "A", 
-                        "anyonlar": {"NO3": 2}, "katyonlar": {"Ca": 1}},
+                        "anyonlar": {"NO3": 2}, "katyonlar": {"Ca": 1}, "cozunurluk": 121.0},
     "Potasyum Nitrat": {"formul": "KNO3", "agirlik": 101.10, "tank": "A", 
-                       "anyonlar": {"NO3": 1}, "katyonlar": {"K": 1}},
+                       "anyonlar": {"NO3": 1}, "katyonlar": {"K": 1}, "cozunurluk": 35.7},
     "Monopotasyum Fosfat": {"formul": "KH2PO4", "agirlik": 136.09, "tank": "B",
-                           "anyonlar": {"H2PO4": 1}, "katyonlar": {"K": 1}},
+                           "anyonlar": {"H2PO4": 1}, "katyonlar": {"K": 1}, "cozunurluk": 22.0},
     "Magnezyum Sülfat": {"formul": "MgSO4.7H2O", "agirlik": 246.51, "tank": "B",
-                        "anyonlar": {"SO4": 1}, "katyonlar": {"Mg": 1}},
+                        "anyonlar": {"SO4": 1}, "katyonlar": {"Mg": 1}, "cozunurluk": 71.0},
     "Potasyum Sülfat": {"formul": "K2SO4", "agirlik": 174.26, "tank": "B",
-                       "anyonlar": {"SO4": 1}, "katyonlar": {"K": 2}},
+                       "anyonlar": {"SO4": 1}, "katyonlar": {"K": 2}, "cozunurluk": 12.0},
     "Amonyum Sülfat": {"formul": "(NH4)2SO4", "agirlik": 132.14, "tank": "B",
-                      "anyonlar": {"SO4": 1}, "katyonlar": {"NH4": 2}}
+                      "anyonlar": {"SO4": 1}, "katyonlar": {"NH4": 2}, "cozunurluk": 75.4}
 }
 
 # Mikro elementler
 mikro_gubreler = {
-    "Demir EDDHA": {"formul": "Fe-EDDHA", "agirlik": 435.0, "element": "Fe"},
-    "Borak": {"formul": "Na2B4O7.10H2O", "agirlik": 381.37, "element": "B"},
-    "Mangan Sülfat": {"formul": "MnSO4.H2O", "agirlik": 169.02, "element": "Mn"},
-    "Çinko Sülfat": {"formul": "ZnSO4.7H2O", "agirlik": 287.56, "element": "Zn"},
-    "Bakır Sülfat": {"formul": "CuSO4.5H2O", "agirlik": 249.68, "element": "Cu"},
-    "Sodyum Molibdat": {"formul": "Na2MoO4.2H2O", "agirlik": 241.95, "element": "Mo"}
+    "Demir EDDHA": {"formul": "Fe-EDDHA", "agirlik": 435.0, "element": "Fe", "cozunurluk": 60.0},
+    "Borak": {"formul": "Na2B4O7.10H2O", "agirlik": 381.37, "element": "B", "cozunurluk": 5.1},
+    "Mangan Sülfat": {"formul": "MnSO4.H2O", "agirlik": 169.02, "element": "Mn", "cozunurluk": 70.0},
+    "Çinko Sülfat": {"formul": "ZnSO4.7H2O", "agirlik": 287.56, "element": "Zn", "cozunurluk": 57.7},
+    "Bakır Sülfat": {"formul": "CuSO4.5H2O", "agirlik": 249.68, "element": "Cu", "cozunurluk": 32.0},
+    "Sodyum Molibdat": {"formul": "Na2MoO4.2H2O", "agirlik": 241.95, "element": "Mo", "cozunurluk": 56.0}
 }
 
 # Hazır reçeteler
@@ -99,64 +95,74 @@ def hesapla_iyonik_denge(recete):
     
     return anyon_toplam, katyon_toplam
 
-# Temel düzen
-col1, col2 = st.columns([1, 2])
+# Başlık 
+st.title("🌱 HydroBuddy Türkçe")
+st.markdown("Hidroponik besin çözeltisi hesaplama aracı")
 
-# Sol taraf: Reçete seçimi ve tank ayarları
-with col1:
-    st.header("Reçete ve Tank Ayarları")
-    
-    # Hazır reçete seçimi
-    secilen_recete = st.selectbox(
-        "Hazır Reçete:",
-        options=list(hazir_receteler.keys())
-    )
-    
-    if st.button("Reçeteyi Yükle"):
-        # Anyonları kopyala
-        for anyon, deger in hazir_receteler[secilen_recete]["anyonlar"].items():
-            st.session_state.recete[anyon] = deger
-        
-        # Katyonları kopyala
-        for katyon, deger in hazir_receteler[secilen_recete]["katyonlar"].items():
-            st.session_state.recete[katyon] = deger
-        
-        # Mikro besinleri kopyala
-        for element, deger in hazir_receteler[secilen_recete]["mikro"].items():
-            st.session_state.recete[element] = deger
-        
-        st.success(f"{secilen_recete} reçetesi yüklendi!")
-    
-    # Tank ayarları
-    st.subheader("Tank Ayarları")
-    
-    a_tank = st.number_input("A Tankı Hacmi (litre):", 
-                          min_value=1, max_value=1000, value=st.session_state.a_tank)
-    st.session_state.a_tank = a_tank
-    
-    b_tank = st.number_input("B Tankı Hacmi (litre):", 
-                          min_value=1, max_value=1000, value=st.session_state.b_tank)
-    st.session_state.b_tank = b_tank
-    
-    konsantrasyon = st.number_input("Konsantrasyon Oranı:", 
-                                 min_value=1, max_value=1000, value=st.session_state.konsantrasyon)
-    st.session_state.konsantrasyon = konsantrasyon
-    
-    # Bilgi
-    st.info("""
-    **Tank İçerikleri:**
-    - A Tankı: Kalsiyum içeren gübreler
-    - B Tankı: Fosfat ve sülfat içeren gübreler ve mikro elementler
-    """)
+# Ana düzen
+tab1, tab2 = st.tabs(["Reçete Oluşturma", "Gübre Hesaplama"])
 
-# Sağ taraf: Reçete değerleri ve hesaplamalar
-with col2:
-    tabs = st.tabs(["Reçete Değerleri", "Gübre Hesaplama"])
+# Tab 1: Reçete Oluşturma
+with tab1:
+    # İki sütunlu düzen
+    col1, col2 = st.columns([1, 2])
     
-    # Reçete değerleri
-    with tabs[0]:
+    # Sol sütun: Reçete seçimi ve tank ayarları
+    with col1:
+        st.header("Reçete ve Tank Ayarları")
+        
+        # Hazır reçete seçimi
+        secilen_recete = st.selectbox(
+            "Hazır Reçete:",
+            options=list(hazir_receteler.keys())
+        )
+        
+        if st.button("Reçeteyi Yükle"):
+            # Anyonları kopyala
+            for anyon, deger in hazir_receteler[secilen_recete]["anyonlar"].items():
+                st.session_state.recete[anyon] = deger
+            
+            # Katyonları kopyala
+            for katyon, deger in hazir_receteler[secilen_recete]["katyonlar"].items():
+                st.session_state.recete[katyon] = deger
+            
+            # Mikro besinleri kopyala
+            for element, deger in hazir_receteler[secilen_recete]["mikro"].items():
+                st.session_state.recete[element] = deger
+            
+            st.success(f"{secilen_recete} reçetesi yüklendi!")
+        
+        # Tank ayarları
+        st.subheader("Tank Ayarları")
+        
+        a_tank = st.number_input("A Tankı Hacmi (litre):", 
+                              min_value=1, max_value=1000, value=st.session_state.a_tank)
+        st.session_state.a_tank = a_tank
+        
+        b_tank = st.number_input("B Tankı Hacmi (litre):", 
+                              min_value=1, max_value=1000, value=st.session_state.b_tank)
+        st.session_state.b_tank = b_tank
+        
+        konsantrasyon = st.number_input("Konsantrasyon Oranı:", 
+                                     min_value=1, max_value=1000, value=st.session_state.konsantrasyon)
+        st.session_state.konsantrasyon = konsantrasyon
+        
+        # Bilgi
+        st.info("""
+        **Tank İçerikleri:**
+        - A Tankı: Kalsiyum içeren gübreler
+        - B Tankı: Fosfat, sülfat ve mikro besin elementleri
+        
+        **Konsantrasyon Oranı:**
+        100x - Yaygın kullanılan konsantrasyon
+        200x - Daha yüksek konsantrasyon, daha az tank doldurma
+        """)
+    
+    # Sağ sütun: Reçete değerleri
+    with col2:
         st.header("Reçete Değerleri")
         
+        # Makro elementleri düzenle
         col_a, col_b = st.columns(2)
         
         # Anyon değerleri
@@ -297,12 +303,21 @@ with col2:
             st.warning(f"⚠️ İyonik denge kabul edilebilir sınırda. (Fark: {fark:.2f} me/L)")
         else:
             st.error(f"❌ İyonik denge bozuk! (Fark: {fark:.2f} me/L)")
+            
+            if anyon_toplam > katyon_toplam:
+                st.info("Öneri: Katyonları (K, Ca, Mg, NH4) artırın veya anyonları (NO3, H2PO4, SO4) azaltın.")
+            else:
+                st.info("Öneri: Anyonları (NO3, H2PO4, SO4) artırın veya katyonları (K, Ca, Mg, NH4) azaltın.")
+
+# Tab 2: Gübre Hesaplama
+with tab2:
+    st.header("Gübre Hesaplama")
     
-    # Gübre hesaplama
-    with tabs[1]:
-        st.header("Gübre Hesaplama")
-        
-        if st.button("Gübre Hesapla"):
+    col_hesap1, col_hesap2 = st.columns([1, 1])
+    
+    with col_hesap1:
+        # Hesaplama butonunu daha belirgin yap
+        if st.button("GÜBRE HESAPLA", use_container_width=True, type="primary"):
             # 1. Kalsiyum Nitrat (A Tankı)
             a_tank_gubreler = {}
             if st.session_state.recete["Ca"] > 0:
@@ -361,24 +376,37 @@ with col2:
             
             # A Tankı sonuçları
             a_tank_sonuc = []
-            a_tank_toplam = 0
+            a_tank_toplam_gram = 0
+            a_tank_su_ihtiyaci_litre = 0
             
             for gubre, mmol in a_tank_gubreler.items():
                 formul = gubreler[gubre]["formul"]
                 mg_l = mmol * gubreler[gubre]["agirlik"]
                 g_tank = (mg_l * st.session_state.konsantrasyon * st.session_state.a_tank) / 1000
-                a_tank_toplam += g_tank
+                a_tank_toplam_gram += g_tank
+                
+                # Çözünürlük için gereken su miktarı (litre)
+                # (gram gübre) / (çözünürlük g/100ml) * (100ml/0.1L) = litre su
+                gereken_su = g_tank / gubreler[gubre]["cozunurluk"] / 10
+                a_tank_su_ihtiyaci_litre += gereken_su
+                
                 a_tank_sonuc.append([gubre, formul, float(mmol), float(mg_l), float(g_tank)])
             
             # B Tankı sonuçları
             b_tank_sonuc = []
-            b_tank_toplam = 0
+            b_tank_toplam_gram = 0
+            b_tank_su_ihtiyaci_litre = 0
             
             for gubre, mmol in b_tank_gubreler.items():
                 formul = gubreler[gubre]["formul"]
                 mg_l = mmol * gubreler[gubre]["agirlik"]
                 g_tank = (mg_l * st.session_state.konsantrasyon * st.session_state.b_tank) / 1000
-                b_tank_toplam += g_tank
+                b_tank_toplam_gram += g_tank
+                
+                # Çözünürlük için gereken su miktarı (litre)
+                gereken_su = g_tank / gubreler[gubre]["cozunurluk"] / 10
+                b_tank_su_ihtiyaci_litre += gereken_su
+                
                 b_tank_sonuc.append([gubre, formul, float(mmol), float(mg_l), float(g_tank)])
             
             # Mikro besin sonuçları
@@ -389,12 +417,18 @@ with col2:
                 mmol = mikromol / 1000
                 mg_l = mmol * mikro_gubreler[gubre]["agirlik"]
                 g_tank = (mg_l * st.session_state.konsantrasyon * st.session_state.b_tank) / 1000
-                b_tank_toplam += g_tank
+                b_tank_toplam_gram += g_tank
+                
+                # Çözünürlük için gereken su miktarı (litre)
+                gereken_su = g_tank / mikro_gubreler[gubre]["cozunurluk"] / 10
+                b_tank_su_ihtiyaci_litre += gereken_su
+                
                 mikro_sonuc.append([gubre, formul, float(mikromol), float(mg_l), float(g_tank)])
             
             # Sonuçları göster
+            st.subheader("A Tankı (Kalsiyum içeren)")
+            
             if a_tank_sonuc:
-                st.subheader("A Tankı (Kalsiyum içeren)")
                 a_tank_df = pd.DataFrame(a_tank_sonuc, 
                                       columns=["Gübre Adı", "Formül", "mmol/L", "mg/L", "g/Tank"])
                 st.dataframe(a_tank_df.style.format({
@@ -402,48 +436,19 @@ with col2:
                     "mg/L": "{:.2f}", 
                     "g/Tank": "{:.2f}"
                 }))
-                st.write(f"**Toplam A Tankı gübresi:** {float(a_tank_toplam):.2f} gram")
+                st.write(f"**Toplam A Tankı gübresi:** {float(a_tank_toplam_gram):.2f} gram")
                 
-                # Tank kapasitesi kontrolü (yaklaşık 300g/L çözünürlük)
-                kapasite_a = st.session_state.a_tank * 300
-                if a_tank_toplam > kapasite_a:
-                    st.error(f"⚠️ A Tankı kapasitesi yetersiz! ({float(a_tank_toplam):.0f}g > {float(kapasite_a):.0f}g)")
-                    st.info("A Tankı hacmini artırın veya konsantrasyon oranını düşürün.")
+                # Tank kapasitesi kontrolü - çözünürlük bazlı
+                if a_tank_su_ihtiyaci_litre > st.session_state.a_tank:
+                    st.error(f"⚠️ A Tankında çözünürlük sorunu! Gübrelerin tam çözünmesi için {a_tank_su_ihtiyaci_litre:.1f} litre su gerekiyor.")
+                    st.info(f"A Tankı hacmini en az {a_tank_su_ihtiyaci_litre:.1f} litreye çıkarın veya konsantrasyon oranını düşürün.")
+                else:
+                    st.success(f"✅ A Tankı hacmi yeterli. ({a_tank_su_ihtiyaci_litre:.1f}L/{st.session_state.a_tank}L) Kullanım: %{(a_tank_su_ihtiyaci_litre/st.session_state.a_tank)*100:.1f}")
             else:
                 st.info("A Tankı için gübre eklenmedi.")
             
-            if b_tank_sonuc or mikro_sonuc:
-                st.subheader("B Tankı (Fosfat, Sülfat ve Mikro elementler)")
-                
-                if b_tank_sonuc:
-                    b_tank_df = pd.DataFrame(b_tank_sonuc, 
-                                          columns=["Gübre Adı", "Formül", "mmol/L", "mg/L", "g/Tank"])
-                    st.dataframe(b_tank_df.style.format({
-                        "mmol/L": "{:.2f}", 
-                        "mg/L": "{:.2f}", 
-                        "g/Tank": "{:.2f}"
-                    }))
-                
-                if mikro_sonuc:
-                    st.subheader("Mikro Besinler")
-                    mikro_df = pd.DataFrame(mikro_sonuc, 
-                                         columns=["Gübre Adı", "Formül", "mikromol/L", "mg/L", "g/Tank"])
-                    st.dataframe(mikro_df.style.format({
-                        "mikromol/L": "{:.2f}", 
-                        "mg/L": "{:.4f}", 
-                        "g/Tank": "{:.4f}"
-                    }))
-                
-                st.write(f"**Toplam B Tankı gübresi:** {float(b_tank_toplam):.2f} gram")
-                
-                # Tank kapasitesi kontrolü (yaklaşık 250g/L çözünürlük)
-                kapasite_b = st.session_state.b_tank * 250
-                if b_tank_toplam > kapasite_b:
-                    st.error(f"⚠️ B Tankı kapasitesi yetersiz! ({float(b_tank_toplam):.0f}g > {float(kapasite_b):.0f}g)")
-                    st.info("B Tankı hacmini artırın veya konsantrasyon oranını düşürün.")
-            else:
-                st.info("B Tankı için gübre eklenmedi.")
-
-# Alt bilgi
-st.markdown("---")
-st.markdown("HydroBuddy Türkçe | Hidroponik besin çözeltisi hesaplama aracı")
+            st.subheader("B Tankı (Fosfat, Sülfat ve Mikro elementler)")
+            
+            if b_tank_sonuc:
+                b_tank_df = pd.DataFrame(b_tank_sonuc, 
+                                      columns=["Gübre Adı", "Formül
