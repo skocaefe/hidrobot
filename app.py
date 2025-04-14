@@ -25,23 +25,37 @@ gubreler = {
     "Monoamonyum Fosfat": {"formul": "NH4H2PO4", "agirlik": 115.03, "tank": "B"}
 }
 
+# Mikro elementler
+mikro_gubreler = {
+    "Demir EDDHA": {"formul": "Fe-EDDHA %6", "agirlik": 435.0, "element": "Fe", "yuzde": 6},
+    "Borak": {"formul": "Na2B4O7.10H2O", "agirlik": 381.37, "element": "B", "yuzde": 11},
+    "Mangan Sülfat": {"formul": "MnSO4.H2O", "agirlik": 169.02, "element": "Mn", "yuzde": 32},
+    "Çinko Sülfat": {"formul": "ZnSO4.7H2O", "agirlik": 287.56, "element": "Zn", "yuzde": 23},
+    "Bakır Sülfat": {"formul": "CuSO4.5H2O", "agirlik": 249.68, "element": "Cu", "yuzde": 25},
+    "Sodyum Molibdat": {"formul": "Na2MoO4.2H2O", "agirlik": 241.95, "element": "Mo", "yuzde": 40}
+}
+
 # Hazır reçeteler
 hazir_receteler = {
     "Genel Amaçlı": {
         "NO3": 11.75, "H2PO4": 1.25, "SO4": 1.0,
-        "NH4": 1.0, "K": 5.5, "Ca": 3.25, "Mg": 1.0
+        "NH4": 1.0, "K": 5.5, "Ca": 3.25, "Mg": 1.0,
+        "Fe": 40.0, "B": 30.0, "Mn": 5.0, "Zn": 4.0, "Cu": 0.75, "Mo": 0.5
     },
     "Domates": {
         "NO3": 14.0, "H2PO4": 1.5, "SO4": 1.5,
-        "NH4": 1.2, "K": 7.0, "Ca": 4.0, "Mg": 1.5
+        "NH4": 1.2, "K": 7.0, "Ca": 4.0, "Mg": 1.5,
+        "Fe": 50.0, "B": 40.0, "Mn": 8.0, "Zn": 4.0, "Cu": 0.8, "Mo": 0.5
     },
     "Salatalık": {
         "NO3": 12.0, "H2PO4": 1.3, "SO4": 1.2,
-        "NH4": 1.1, "K": 5.8, "Ca": 3.5, "Mg": 1.2
+        "NH4": 1.1, "K": 5.8, "Ca": 3.5, "Mg": 1.2,
+        "Fe": 45.0, "B": 35.0, "Mn": 6.0, "Zn": 4.0, "Cu": 0.75, "Mo": 0.5
     },
     "Marul": {
         "NO3": 10.0, "H2PO4": 1.0, "SO4": 0.8,
-        "NH4": 0.8, "K": 4.5, "Ca": 3.0, "Mg": 0.8
+        "NH4": 0.8, "K": 4.5, "Ca": 3.0, "Mg": 0.8,
+        "Fe": 35.0, "B": 25.0, "Mn": 4.0, "Zn": 3.0, "Cu": 0.5, "Mo": 0.4
     }
 }
 
@@ -49,7 +63,8 @@ hazir_receteler = {
 if 'recete' not in st.session_state:
     st.session_state.recete = {
         "NO3": 11.75, "H2PO4": 1.25, "SO4": 1.0,
-        "NH4": 1.0, "K": 5.5, "Ca": 3.25, "Mg": 1.0
+        "NH4": 1.0, "K": 5.5, "Ca": 3.25, "Mg": 1.0,
+        "Fe": 40.0, "B": 30.0, "Mn": 5.0, "Zn": 4.0, "Cu": 0.75, "Mo": 0.5
     }
     
 if 'a_tank' not in st.session_state:
@@ -179,6 +194,50 @@ with tabs[0]:
                              key="mg_input")
             st.session_state.recete["Mg"] = mg
         
+        # Mikro besinler
+        st.subheader("Mikro Besinler (mikromol/L)")
+        
+        col_m1, col_m2, col_m3 = st.columns(3)
+        
+        with col_m1:
+            fe = st.number_input("Fe (Demir):", 
+                             value=float(st.session_state.recete["Fe"]), 
+                             min_value=0.0, max_value=100.0, step=1.0, format="%.1f",
+                             key="fe_input")
+            st.session_state.recete["Fe"] = fe
+            
+            mn = st.number_input("Mn (Mangan):", 
+                             value=float(st.session_state.recete["Mn"]), 
+                             min_value=0.0, max_value=50.0, step=0.5, format="%.1f",
+                             key="mn_input")
+            st.session_state.recete["Mn"] = mn
+        
+        with col_m2:
+            b = st.number_input("B (Bor):", 
+                            value=float(st.session_state.recete["B"]), 
+                            min_value=0.0, max_value=100.0, step=1.0, format="%.1f",
+                            key="b_input")
+            st.session_state.recete["B"] = b
+            
+            zn = st.number_input("Zn (Çinko):", 
+                             value=float(st.session_state.recete["Zn"]), 
+                             min_value=0.0, max_value=50.0, step=0.5, format="%.1f",
+                             key="zn_input")
+            st.session_state.recete["Zn"] = zn
+        
+        with col_m3:
+            cu = st.number_input("Cu (Bakır):", 
+                             value=float(st.session_state.recete["Cu"]), 
+                             min_value=0.0, max_value=10.0, step=0.05, format="%.2f",
+                             key="cu_input")
+            st.session_state.recete["Cu"] = cu
+            
+            mo = st.number_input("Mo (Molibden):", 
+                             value=float(st.session_state.recete["Mo"]), 
+                             min_value=0.0, max_value=10.0, step=0.05, format="%.2f",
+                             key="mo_input")
+            st.session_state.recete["Mo"] = mo
+        
         # İyonik denge hesaplaması
         st.subheader("İyonik Denge")
         
@@ -287,6 +346,27 @@ with tabs[1]:
                 kalan_k -= (2 * k2so4_miktari)
                 kalan_so4 -= k2so4_miktari
         
+        # Mikro elementler için gübre hesaplama
+        mikro_sonuc = []
+        
+        for element, mikromol in [
+            ("Fe", st.session_state.recete["Fe"]), 
+            ("B", st.session_state.recete["B"]), 
+            ("Mn", st.session_state.recete["Mn"]), 
+            ("Zn", st.session_state.recete["Zn"]), 
+            ("Cu", st.session_state.recete["Cu"]), 
+            ("Mo", st.session_state.recete["Mo"])
+        ]:
+            if mikromol > 0:
+                for gubre_adi, bilgi in mikro_gubreler.items():
+                    if bilgi["element"] == element:
+                        mmol = mikromol / 1000  # mikromol -> mmol
+                        element_mol_agirligi = bilgi["agirlik"] * (100 / bilgi["yuzde"])  # Element için mol ağırlığı
+                        mg_l = mmol * element_mol_agirligi
+                        g_tank = (mg_l * st.session_state.konsantrasyon * st.session_state.b_tank) / 1000
+                        mikro_sonuc.append([gubre_adi, bilgi["formul"], float(mikromol), float(mg_l), float(g_tank)])
+                        break
+        
         # Sonuçları hesaplama
         a_tank_sonuc = []
         a_tank_toplam = 0
@@ -295,9 +375,10 @@ with tabs[1]:
             formul = gubreler[gubre]["formul"]
             mg_l = mmol * gubreler[gubre]["agirlik"]
             g_tank = (mg_l * st.session_state.konsantrasyon * st.session_state.a_tank) / 1000
+            kg_tank = g_tank / 1000  # g -> kg
             a_tank_toplam += g_tank
             
-            a_tank_sonuc.append([gubre, formul, float(mmol), float(mg_l), float(g_tank)])
+            a_tank_sonuc.append([gubre, formul, float(mmol), float(mg_l), float(kg_tank)])
         
         b_tank_sonuc = []
         b_tank_toplam = 0
@@ -306,9 +387,10 @@ with tabs[1]:
             formul = gubreler[gubre]["formul"]
             mg_l = mmol * gubreler[gubre]["agirlik"]
             g_tank = (mg_l * st.session_state.konsantrasyon * st.session_state.b_tank) / 1000
+            kg_tank = g_tank / 1000  # g -> kg
             b_tank_toplam += g_tank
             
-            b_tank_sonuc.append([gubre, formul, float(mmol), float(mg_l), float(g_tank)])
+            b_tank_sonuc.append([gubre, formul, float(mmol), float(mg_l), float(kg_tank)])
         
         # Sonuçları gösterme
         col_sonuc1, col_sonuc2 = st.columns(2)
@@ -318,13 +400,13 @@ with tabs[1]:
             
             if a_tank_sonuc:
                 a_tank_df = pd.DataFrame(a_tank_sonuc, 
-                                      columns=["Gübre Adı", "Formül", "mmol/L", "mg/L", "g/Tank"])
+                                      columns=["Gübre Adı", "Formül", "mmol/L", "mg/L", "kg/Tank"])
                 st.dataframe(a_tank_df.style.format({
                     "mmol/L": "{:.2f}", 
                     "mg/L": "{:.2f}", 
-                    "g/Tank": "{:.2f}"
+                    "kg/Tank": "{:.3f}"
                 }))
-                st.write(f"**Toplam A Tankı gübresi:** {a_tank_toplam:.2f} gram")
+                st.write(f"**Toplam A Tankı gübresi:** {a_tank_toplam/1000:.3f} kg")
             else:
                 st.info("A Tankı için gübre eklenmedi.")
         
@@ -333,15 +415,31 @@ with tabs[1]:
             
             if b_tank_sonuc:
                 b_tank_df = pd.DataFrame(b_tank_sonuc, 
-                                     columns=["Gübre Adı", "Formül", "mmol/L", "mg/L", "g/Tank"])
+                                     columns=["Gübre Adı", "Formül", "mmol/L", "mg/L", "kg/Tank"])
                 st.dataframe(b_tank_df.style.format({
                     "mmol/L": "{:.2f}", 
                     "mg/L": "{:.2f}", 
-                    "g/Tank": "{:.2f}"
+                    "kg/Tank": "{:.3f}"
                 }))
-                st.write(f"**Toplam B Tankı gübresi:** {b_tank_toplam:.2f} gram")
+                st.write(f"**Toplam B Tankı gübresi:** {b_tank_toplam/1000:.3f} kg")
             else:
                 st.info("B Tankı için gübre eklenmedi.")
+        
+        # Mikro besinleri göster
+        st.subheader("Mikro Besin Elementleri")
+        
+        if mikro_sonuc:
+            mikro_df = pd.DataFrame(mikro_sonuc, 
+                                 columns=["Gübre Adı", "Formül", "mikromol/L", "mg/L", "gram/Tank"])
+            st.dataframe(mikro_df.style.format({
+                "mikromol/L": "{:.2f}", 
+                "mg/L": "{:.4f}", 
+                "gram/Tank": "{:.4f}"
+            }))
+            mikro_toplam = sum(sonuc[4] for sonuc in mikro_sonuc)
+            st.write(f"**Toplam mikro besin gübresi:** {mikro_toplam:.2f} gram")
+        else:
+            st.info("Mikro besin elementi eklenmedi.")
         
         # Karşılanamayan besinleri gösterme
         st.subheader("Denge Kontrol")
