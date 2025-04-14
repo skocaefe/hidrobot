@@ -23,7 +23,9 @@ gubreler = {
     "Potasyum Sülfat": {"formul": "K2SO4", "agirlik": 174.26, "tank": "B",
                        "anyonlar": {"SO4": 1}, "katyonlar": {"K": 2}, "cozunurluk": 12.0},
     "Amonyum Sülfat": {"formul": "(NH4)2SO4", "agirlik": 132.14, "tank": "B",
-                      "anyonlar": {"SO4": 1}, "katyonlar": {"NH4": 2}, "cozunurluk": 75.4}
+                      "anyonlar": {"SO4": 1}, "katyonlar": {"NH4": 2}, "cozunurluk": 75.4},
+    "Monoamonyum Fosfat": {"formul": "NH4H2PO4", "agirlik": 115.03, "tank": "B",
+                           "anyonlar": {"H2PO4": 1}, "katyonlar": {"NH4": 1}, "cozunurluk": 40.0}
 }
 
 # Mikro elementler
@@ -151,7 +153,7 @@ with tab1:
         st.info("""
         **Tank İçerikleri:**
         - A Tankı: Kalsiyum içeren gübreler
-        - B Tankı: Fosfat, sülfat ve mikro besin elementleri
+        - B Tankı: Fosfat, sülfat, amonyum ve mikro besin elementleri
         
         **Konsantrasyon Oranı:**
         100x - Yaygın kullanılan konsantrasyon
@@ -318,50 +320,64 @@ with tab2:
     with col_hesap1:
         # Hesaplama butonunu daha belirgin yap
         if st.button("GÜBRE HESAPLA", use_container_width=True, type="primary"):
+            # İlk olarak mevcut fosfat ile ne kadar amonyum karşılayabileceğimizi hesapla
+            nh4_kalan = st.session_state.recete["NH4"]
+            h2po4_kalan = st.session_state.recete["H2PO4"]
+            
+            # Monoamonyum Fosfat için
+            b_tank_gubreler = {}
+            if nh4_kalan > 0 and h2po4_kalan > 0:
+                map_miktar = min(nh4_kalan, h2po4_kalan)
+                if map_miktar > 0:
+                    b_tank_gubreler["Monoamonyum Fosfat"] = map_miktar
+                    nh4_kalan -= map_miktar
+                    h2po4_kalan -= map_miktar
+            
+            # Eğer fosfat kaldıysa, Monopotasyum Fosfat için kullan
+            if h2po4_kalan > 0:
+                b_tank_gubreler["Monopotasyum Fosfat"] = h2po4_kalan
+                k_kalan = st.session_state.recete["K"] - h2po4_kalan
+            else:
+                k_kalan = st.session_state.recete["K"]
+            
             # 1. Kalsiyum Nitrat (A Tankı)
             a_tank_gubreler = {}
             if st.session_state.recete["Ca"] > 0:
                 a_tank_gubreler["Kalsiyum Nitrat"] = st.session_state.recete["Ca"]
-                kalan_no3 = st.session_state.recete["NO3"] - 2 * st.session_state.recete["Ca"]
+                no3_kalan = st.session_state.recete["NO3"] - (2 * st.session_state.recete["Ca"])
             else:
-                kalan_no3 = st.session_state.recete["NO3"]
+                no3_kalan = st.session_state.recete["NO3"]
             
-            # 2. Monopotasyum Fosfat (B Tankı)
-            b_tank_gubreler = {}
-            if st.session_state.recete["H2PO4"] > 0:
-                b_tank_gubreler["Monopotasyum Fosfat"] = st.session_state.recete["H2PO4"]
-                kalan_k = st.session_state.recete["K"] - st.session_state.recete["H2PO4"]
-            else:
-                kalan_k = st.session_state.recete["K"]
-            
-            # 3. Magnezyum Sülfat (B Tankı)
+            # 2. Magnezyum Sülfat (B Tankı)
             if st.session_state.recete["Mg"] > 0:
                 b_tank_gubreler["Magnezyum Sülfat"] = st.session_state.recete["Mg"]
-                kalan_so4 = st.session_state.recete["SO4"] - st.session_state.recete["Mg"]
+                so4_kalan = st.session_state.recete["SO4"] - st.session_state.recete["Mg"]
             else:
-                kalan_so4 = st.session_state.recete["SO4"]
+                so4_kalan = st.session_state.recete["SO4"]
+            
+            # 3. Amonyum Sülfat (B Tankı) - Kalan amonyum için
+            if nh4_kalan > 0 and so4_kalan > 0:
+                as_miktar = min(nh4_kalan / 2, so4_kalan)
+                if as_miktar > 0:
+                    b_tank_gubreler["Amonyum Sülfat"] = as_miktar
+                    nh4_kalan -= (as_miktar * 2)  # 2 NH4 per SO4
+                    so4_kalan -= as_miktar
             
             # 4. Potasyum Nitrat (A Tankı)
-            if kalan_no3 > 0 and kalan_k > 0:
-                kno3_miktar = min(kalan_no3, kalan_k)
+            if no3_kalan > 0 and k_kalan > 0:
+                kno3_miktar = min(no3_kalan, k_kalan)
                 if kno3_miktar > 0:
                     a_tank_gubreler["Potasyum Nitrat"] = kno3_miktar
-                    kalan_no3 -= kno3_miktar
-                    kalan_k -= kno3_miktar
+                    no3_kalan -= kno3_miktar
+                    k_kalan -= kno3_miktar
             
             # 5. Potasyum Sülfat (B Tankı)
-            if kalan_k > 0 and kalan_so4 > 0:
-                k2so4_miktar = min(kalan_k / 2, kalan_so4)
+            if k_kalan > 0 and so4_kalan > 0:
+                k2so4_miktar = min(k_kalan / 2, so4_kalan)
                 if k2so4_miktar > 0:
                     b_tank_gubreler["Potasyum Sülfat"] = k2so4_miktar
-                    kalan_so4 -= k2so4_miktar
-                    kalan_k -= 2 * k2so4_miktar
-            
-            # 6. Amonyum Sülfat (B Tankı)
-            if st.session_state.recete["NH4"] > 0 and kalan_so4 > 0:
-                nh4_miktar = min(st.session_state.recete["NH4"] / 2, kalan_so4)
-                if nh4_miktar > 0:
-                    b_tank_gubreler["Amonyum Sülfat"] = nh4_miktar
+                    k_kalan -= (k2so4_miktar * 2)  # 2 K per SO4
+                    so4_kalan -= k2so4_miktar
             
             # Mikro elementler
             mikro_gubreler_sonuc = {}
@@ -425,30 +441,18 @@ with tab2:
                 
                 mikro_sonuc.append([gubre, formul, float(mikromol), float(mg_l), float(g_tank)])
             
+            # Karşılanamayan besinleri kontrol et
+            eksik_besinler = []
+            if nh4_kalan > 0.1:  # 0.1'den büyükse anlamlı bir miktardır
+                eksik_besinler.append(f"NH4: {nh4_kalan:.2f} mmol/L")
+            if no3_kalan > 0.1:
+                eksik_besinler.append(f"NO3: {no3_kalan:.2f} mmol/L")
+            if h2po4_kalan > 0.1:
+                eksik_besinler.append(f"H2PO4: {h2po4_kalan:.2f} mmol/L")
+            if so4_kalan > 0.1:
+                eksik_besinler.append(f"SO4: {so4_kalan:.2f} mmol/L")
+            if k_kalan > 0.1:
+                eksik_besinler.append(f"K: {k_kalan:.2f} mmol/L")
+            
             # Sonuçları göster
-            st.subheader("A Tankı (Kalsiyum içeren)")
-            
-            if a_tank_sonuc:
-                a_tank_df = pd.DataFrame(a_tank_sonuc, 
-                                      columns=["Gübre Adı", "Formül", "mmol/L", "mg/L", "g/Tank"])
-                st.dataframe(a_tank_df.style.format({
-                    "mmol/L": "{:.2f}", 
-                    "mg/L": "{:.2f}", 
-                    "g/Tank": "{:.2f}"
-                }))
-                st.write(f"**Toplam A Tankı gübresi:** {float(a_tank_toplam_gram):.2f} gram")
-                
-                # Tank kapasitesi kontrolü - çözünürlük bazlı
-                if a_tank_su_ihtiyaci_litre > st.session_state.a_tank:
-                    st.error(f"⚠️ A Tankında çözünürlük sorunu! Gübrelerin tam çözünmesi için {a_tank_su_ihtiyaci_litre:.1f} litre su gerekiyor.")
-                    st.info(f"A Tankı hacmini en az {a_tank_su_ihtiyaci_litre:.1f} litreye çıkarın veya konsantrasyon oranını düşürün.")
-                else:
-                    st.success(f"✅ A Tankı hacmi yeterli. ({a_tank_su_ihtiyaci_litre:.1f}L/{st.session_state.a_tank}L) Kullanım: %{(a_tank_su_ihtiyaci_litre/st.session_state.a_tank)*100:.1f}")
-            else:
-                st.info("A Tankı için gübre eklenmedi.")
-            
-            st.subheader("B Tankı (Fosfat, Sülfat ve Mikro elementler)")
-            
-            if b_tank_sonuc:
-                b_tank_df = pd.DataFrame(b_tank_sonuc, 
-                                      columns=["Gübre Adı", "Formül
+            st.
