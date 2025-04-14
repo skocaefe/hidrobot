@@ -61,11 +61,7 @@ hazir_receteler = {
 
 # Session state başlatma
 if 'recete' not in st.session_state:
-    st.session_state.recete = {
-        "NO3": 11.75, "H2PO4": 1.25, "SO4": 1.0,
-        "NH4": 1.0, "K": 5.5, "Ca": 3.25, "Mg": 1.0,
-        "Fe": 40.0, "B": 30.0, "Mn": 5.0, "Zn": 4.0, "Cu": 0.75, "Mo": 0.5
-    }
+    st.session_state.recete = hazir_receteler["Genel Amaçlı"].copy()
     
 if 'a_tank' not in st.session_state:
     st.session_state.a_tank = 10
@@ -201,39 +197,39 @@ with tabs[0]:
         
         with col_m1:
             fe = st.number_input("Fe (Demir):", 
-                             value=float(st.session_state.recete["Fe"]), 
+                             value=float(st.session_state.recete.get("Fe", 40.0)), 
                              min_value=0.0, max_value=100.0, step=1.0, format="%.1f",
                              key="fe_input")
             st.session_state.recete["Fe"] = fe
             
             mn = st.number_input("Mn (Mangan):", 
-                             value=float(st.session_state.recete["Mn"]), 
+                             value=float(st.session_state.recete.get("Mn", 5.0)), 
                              min_value=0.0, max_value=50.0, step=0.5, format="%.1f",
                              key="mn_input")
             st.session_state.recete["Mn"] = mn
         
         with col_m2:
             b = st.number_input("B (Bor):", 
-                            value=float(st.session_state.recete["B"]), 
+                            value=float(st.session_state.recete.get("B", 30.0)), 
                             min_value=0.0, max_value=100.0, step=1.0, format="%.1f",
                             key="b_input")
             st.session_state.recete["B"] = b
             
             zn = st.number_input("Zn (Çinko):", 
-                             value=float(st.session_state.recete["Zn"]), 
+                             value=float(st.session_state.recete.get("Zn", 4.0)), 
                              min_value=0.0, max_value=50.0, step=0.5, format="%.1f",
                              key="zn_input")
             st.session_state.recete["Zn"] = zn
         
         with col_m3:
             cu = st.number_input("Cu (Bakır):", 
-                             value=float(st.session_state.recete["Cu"]), 
+                             value=float(st.session_state.recete.get("Cu", 0.75)), 
                              min_value=0.0, max_value=10.0, step=0.05, format="%.2f",
                              key="cu_input")
             st.session_state.recete["Cu"] = cu
             
             mo = st.number_input("Mo (Molibden):", 
-                             value=float(st.session_state.recete["Mo"]), 
+                             value=float(st.session_state.recete.get("Mo", 0.5)), 
                              min_value=0.0, max_value=10.0, step=0.05, format="%.2f",
                              key="mo_input")
             st.session_state.recete["Mo"] = mo
@@ -349,23 +345,27 @@ with tabs[1]:
         # Mikro elementler için gübre hesaplama
         mikro_sonuc = []
         
-        for element, mikromol in [
-            ("Fe", st.session_state.recete["Fe"]), 
-            ("B", st.session_state.recete["B"]), 
-            ("Mn", st.session_state.recete["Mn"]), 
-            ("Zn", st.session_state.recete["Zn"]), 
-            ("Cu", st.session_state.recete["Cu"]), 
-            ("Mo", st.session_state.recete["Mo"])
+        for element, gubre_adi in [
+            ("Fe", "Demir EDDHA"), 
+            ("B", "Borak"), 
+            ("Mn", "Mangan Sülfat"), 
+            ("Zn", "Çinko Sülfat"), 
+            ("Cu", "Bakır Sülfat"), 
+            ("Mo", "Sodyum Molibdat")
         ]:
-            if mikromol > 0:
-                for gubre_adi, bilgi in mikro_gubreler.items():
-                    if bilgi["element"] == element:
-                        mmol = mikromol / 1000  # mikromol -> mmol
-                        element_mol_agirligi = bilgi["agirlik"] * (100 / bilgi["yuzde"])  # Element için mol ağırlığı
-                        mg_l = mmol * element_mol_agirligi
-                        g_tank = (mg_l * st.session_state.konsantrasyon * st.session_state.b_tank) / 1000
-                        mikro_sonuc.append([gubre_adi, bilgi["formul"], float(mikromol), float(mg_l), float(g_tank)])
-                        break
+            if element in st.session_state.recete and st.session_state.recete[element] > 0:
+                mikromol = st.session_state.recete[element]
+                bilgi = mikro_gubreler[gubre_adi]
+                mmol = mikromol / 1000  # mikromol -> mmol
+                
+                # Saf element için formül ağırlığını hesapla
+                element_mol_agirligi = bilgi["agirlik"] * (100 / bilgi["yuzde"])
+                
+                # mg ve g hesapla
+                mg_l = mmol * element_mol_agirligi
+                g_tank = (mg_l * st.session_state.konsantrasyon * st.session_state.b_tank) / 1000
+                
+                mikro_sonuc.append([gubre_adi, bilgi["formul"], float(mikromol), float(mg_l), float(g_tank)])
         
         # Sonuçları hesaplama
         a_tank_sonuc = []
