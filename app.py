@@ -1,3 +1,17 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+
+st.set_page_config(page_title="Hidrobot", page_icon="🤖", layout="wide")
+
+st.title("🤖 Hidrobot - Hidroponik Besin Çözeltisi Hesaplayıcı")
+st.markdown("""
+Hidroponik sistemler için tam reçete oluşturur, EC ve pH tahmini yapar.  
+Eksik/fazla iyonları analiz eder, gerekirse gübre tavsiyesi sunar.  
+Çözelti hazırlama adımlarını anlatır.  
+**Su sıcaklığı 20°C kabul edilir. Önce su, sonra gübre eklenir.**
+""")
+
 # --- Reçete Girişi ---
 st.header("🧪 Reçete Girişi")
 
