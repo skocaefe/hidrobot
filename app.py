@@ -152,7 +152,7 @@ with tabs[0]:
         
         if st.button("Reçeteyi Yükle"):
             st.session_state.recete = hazir_receteler[secilen_recete].copy()
-            st.success(f"{secilen_recete} reçetesi yüklendi!")
+            st.success(secilen_recete + " reçetesi yüklendi!")
         
         # Tank ayarları
         st.subheader("Tank Ayarları")
@@ -298,7 +298,7 @@ with tabs[0]:
             anyon_df = pd.DataFrame(anyon_data, columns=["Anyon", "mmol/L", "me/L"])
             st.write("**Anyonlar:**")
             st.dataframe(anyon_df.style.format({"mmol/L": "{:.2f}", "me/L": "{:.2f}"}))
-            st.write(f"**Toplam:** {anyon_toplam:.2f} me/L")
+            st.write("**Toplam:** " + str(round(anyon_toplam, 2)) + " me/L")
         
         # Katyonlar tablosu
         with col_denge2:
@@ -313,16 +313,16 @@ with tabs[0]:
             katyon_df = pd.DataFrame(katyon_data, columns=["Katyon", "mmol/L", "me/L"])
             st.write("**Katyonlar:**")
             st.dataframe(katyon_df.style.format({"mmol/L": "{:.2f}", "me/L": "{:.2f}"}))
-            st.write(f"**Toplam:** {katyon_toplam:.2f} me/L")
+            st.write("**Toplam:** " + str(round(katyon_toplam, 2)) + " me/L")
         
         # Denge kontrolü
         fark = abs(anyon_toplam - katyon_toplam)
         if fark < 0.5:
-            st.success(f"✅ İyonik denge iyi durumda! (Fark: {fark:.2f} me/L)")
+            st.success("✅ İyonik denge iyi durumda! (Fark: " + str(round(fark, 2)) + " me/L)")
         elif fark < 1.0:
-            st.warning(f"⚠️ İyonik denge kabul edilebilir sınırda. (Fark: {fark:.2f} me/L)")
+            st.warning("⚠️ İyonik denge kabul edilebilir sınırda. (Fark: " + str(round(fark, 2)) + " me/L)")
         else:
-            st.error(f"❌ İyonik denge bozuk! (Fark: {fark:.2f} me/L)")
+            st.error("❌ İyonik denge bozuk! (Fark: " + str(round(fark, 2)) + " me/L)")
             
             if anyon_toplam > katyon_toplam:
                 st.markdown("**İyileştirme Önerisi:** Anyon fazlası var. Daha fazla katyon (K, Ca, Mg, NH4) ekleyebilirsiniz.")
@@ -418,7 +418,15 @@ with tabs[2]:
             st.session_state.kullanilabilir_gubreler[gubre] = st.checkbox(
                 "☐ " + gubre + " (" + gubreler[gubre]['formul'] + ")",
                 value=st.session_state.kullanilabilir_gubreler[gubre],
-                key=f"checkbox_{gubre}"
+                key="checkbox_" + gubre
+            )
+        
+        st.markdown("**B Tankı Gübreleri**")
+        for gubre in b_tank_gubreler:
+            st.session_state.kullanilabilir_gubreler[gubre] = st.checkbox(
+                "☐ " + gubre + " (" + gubreler[gubre]['formul'] + ")",
+                value=st.session_state.kullanilabilir_gubreler[gubre],
+                key="checkbox_" + gubre
             )
     
     # Mikro gübreler seçimi
@@ -435,12 +443,12 @@ with tabs[2]:
         
         # Her element için tek bir seçim yapılması
         for element, gubreleri in mikro_element_gruplari.items():
-            st.markdown(f"**{element} Kaynakları**")
+            st.markdown("**" + element + " Kaynakları**")
             secilen_gubre = st.radio(
-                f"{element} için gübre seçimi",
+                element + " için gübre seçimi",
                 options=["Seçilmedi"] + gubreleri,
                 index=0,
-                key=f"radio_{element}"
+                key="radio_" + element
             )
             
             # Seçimi kaydet
@@ -463,14 +471,14 @@ with tabs[2]:
     if secilen_gubreler:
         st.write("**Makro Gübreler:**")
         for gubre in secilen_gubreler:
-            st.write(f"✓ {gubre} ({gubreler[gubre]['formul']})")
+            st.write("✓ " + gubre + " (" + gubreler[gubre]['formul'] + ")")
     else:
         st.warning("Henüz makro gübre seçmediniz!")
     
     if secilen_mikro_gubreler:
         st.write("**Mikro Gübreler:**")
         for gubre in secilen_mikro_gubreler:
-            st.write(f"✓ {gubre} ({mikro_gubreler[gubre]['formul']})")
+            st.write("✓ " + gubre + " (" + mikro_gubreler[gubre]['formul'] + ")")
     else:
         st.warning("Henüz mikro gübre seçmediniz!")
     
@@ -532,7 +540,7 @@ with tabs[3]:
             
             # Başlangıç durumunu kaydet
             st.session_state.hesaplama_log.append({
-                "adim": f"Başlangıç",
+                "adim": "Başlangıç",
                 "aciklama": "Kuyu suyu çıkarıldıktan sonraki ihtiyaçlar",
                 "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
             })
@@ -545,8 +553,8 @@ with tabs[3]:
                 net_ihtiyac["NO3"] -= 2 * ca_miktar
                 
                 st.session_state.hesaplama_log.append({
-                    "adim": f"Adım {adim}",
-                    "aciklama": f"Kalsiyum Nitrat eklendi: {ca_miktar:.2f} mmol/L",
+                    "adim": "Adım " + str(adim),
+                    "aciklama": "Kalsiyum Nitrat eklendi: " + str(round(ca_miktar, 2)) + " mmol/L",
                     "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
                 })
                 adim += 1
@@ -558,8 +566,8 @@ with tabs[3]:
                 net_ihtiyac["SO4"] -= mg_miktar
                 
                 st.session_state.hesaplama_log.append({
-                    "adim": f"Adım {adim}",
-                    "aciklama": f"Magnezyum Sülfat eklendi: {mg_miktar:.2f} mmol/L",
+                    "adim": "Adım " + str(adim),
+                    "aciklama": "Magnezyum Sülfat eklendi: " + str(round(mg_miktar, 2)) + " mmol/L",
                     "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
                 })
                 adim += 1
@@ -571,8 +579,8 @@ with tabs[3]:
                 net_ihtiyac["NO3"] -= 2 * mg_miktar
                 
                 st.session_state.hesaplama_log.append({
-                    "adim": f"Adım {adim}",
-                    "aciklama": f"Magnezyum Nitrat eklendi: {mg_miktar:.2f} mmol/L",
+                    "adim": "Adım " + str(adim),
+                    "aciklama": "Magnezyum Nitrat eklendi: " + str(round(mg_miktar, 2)) + " mmol/L",
                     "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
                 })
                 adim += 1
@@ -586,8 +594,8 @@ with tabs[3]:
                     net_ihtiyac["NH4"] -= map_miktar
                     
                     st.session_state.hesaplama_log.append({
-                        "adim": f"Adım {adim}",
-                        "aciklama": f"Monoamonyum Fosfat eklendi: {map_miktar:.2f} mmol/L",
+                        "adim": "Adım " + str(adim),
+                        "aciklama": "Monoamonyum Fosfat eklendi: " + str(round(map_miktar, 2)) + " mmol/L",
                         "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
                     })
                     adim += 1
@@ -600,8 +608,8 @@ with tabs[3]:
                     net_ihtiyac["K"] -= mkp_miktar
                     
                     st.session_state.hesaplama_log.append({
-                        "adim": f"Adım {adim}",
-                        "aciklama": f"Monopotasyum Fosfat eklendi: {mkp_miktar:.2f} mmol/L",
+                        "adim": "Adım " + str(adim),
+                        "aciklama": "Monopotasyum Fosfat eklendi: " + str(round(mkp_miktar, 2)) + " mmol/L",
                         "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
                     })
                     adim += 1
@@ -615,8 +623,8 @@ with tabs[3]:
                     net_ihtiyac["SO4"] -= as_miktar
                     
                     st.session_state.hesaplama_log.append({
-                        "adim": f"Adım {adim}",
-                        "aciklama": f"Amonyum Sülfat eklendi: {as_miktar:.2f} mmol/L",
+                        "adim": "Adım " + str(adim),
+                        "aciklama": "Amonyum Sülfat eklendi: " + str(round(as_miktar, 2)) + " mmol/L",
                         "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
                     })
                     adim += 1
@@ -630,8 +638,8 @@ with tabs[3]:
                     net_ihtiyac["NO3"] -= kn_miktar
                     
                     st.session_state.hesaplama_log.append({
-                        "adim": f"Adım {adim}",
-                        "aciklama": f"Potasyum Nitrat eklendi: {kn_miktar:.2f} mmol/L",
+                        "adim": "Adım " + str(adim),
+                        "aciklama": "Potasyum Nitrat eklendi: " + str(round(kn_miktar, 2)) + " mmol/L",
                         "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
                     })
                     adim += 1
@@ -645,8 +653,8 @@ with tabs[3]:
                     net_ihtiyac["SO4"] -= ks_miktar
                     
                     st.session_state.hesaplama_log.append({
-                        "adim": f"Adım {adim}",
-                        "aciklama": f"Potasyum Sülfat eklendi: {ks_miktar:.2f} mmol/L",
+                        "adim": "Adım " + str(adim),
+                        "aciklama": "Potasyum Sülfat eklendi: " + str(round(ks_miktar, 2)) + " mmol/L",
                         "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
                     })
                     adim += 1
@@ -720,7 +728,7 @@ with tabs[3]:
                         "mg/L": "{:.2f}", 
                         "kg/Tank": "{:.3f}"
                     }))
-                    st.write(f"**Toplam A Tankı gübresi:** {a_tank_toplam/1000:.3f} kg")
+                    st.write("**Toplam A Tankı gübresi:** " + str(round(a_tank_toplam/1000, 3)) + " kg")
                 else:
                     st.info("A Tankı için gübre eklenmedi.")
             
@@ -735,7 +743,7 @@ with tabs[3]:
                         "mg/L": "{:.2f}", 
                         "kg/Tank": "{:.3f}"
                     }))
-                    st.write(f"**Toplam B Tankı gübresi:** {b_tank_toplam/1000:.3f} kg")
+                    st.write("**Toplam B Tankı gübresi:** " + str(round(b_tank_toplam/1000, 3)) + " kg")
                 else:
                     st.info("B Tankı için gübre eklenmedi.")
             
@@ -751,7 +759,7 @@ with tabs[3]:
                     "gram/Tank": "{:.2f}"
                 }))
                 mikro_toplam = sum(sonuc[4] for sonuc in mikro_sonuc)
-                st.write(f"**Toplam mikro besin gübresi:** {mikro_toplam:.2f} gram")
+                st.write("**Toplam mikro besin gübresi:** " + str(round(mikro_toplam, 2)) + " gram")
             else:
                 st.info("Mikro besin elementi eklenmedi veya seçilen gübrelerle karşılanamadı.")
             
@@ -761,9 +769,9 @@ with tabs[3]:
             
             # Negatif ihtiyaç uyarıları
             if negatif_ihtiyaclar:
-                st.warning(f"⚠️ Dikkat! Aşağıdaki besinler reçete ihtiyacından fazla eklendi:")
+                st.warning("⚠️ Dikkat! Aşağıdaki besinler reçete ihtiyacından fazla eklendi:")
                 for iyon in negatif_ihtiyaclar:
-                    st.markdown(f"- {iyon}: {-net_ihtiyac[iyon]:.2f} mmol/L fazla")
+                    st.markdown("- " + iyon + ": " + str(round(-net_ihtiyac[iyon], 2)) + " mmol/L fazla")
                 st.markdown("Bu durum bitki sağlığını olumsuz etkileyebilir veya EC değerini gereksiz yükseltebilir.")
             
             # Karşılanamayan besinleri gösterme
@@ -776,10 +784,10 @@ with tabs[3]:
             for iyon, miktar in net_ihtiyac.items():
                 if miktar > 0.1:  # 0.1 mmol/L'den büyük eksikler önemli
                     eksik_var = True
-                    uyari += f" {iyon}: {miktar:.2f} mmol/L,"
+                    uyari += " " + iyon + ": " + str(round(miktar, 2)) + " mmol/L,"
             
             if eksik_var:
-                st.warning(f"⚠️ Seçilen gübrelerle karşılanamayan besinler:{uyari[:-1]}")
+                st.warning("⚠️ Seçilen gübrelerle karşılanamayan besinler:" + uyari[:-1])
                 st.markdown("**Önerilen Ek Gübreler:**")
                 
                 # Her eksik besin için öneriler
@@ -798,7 +806,7 @@ with tabs[3]:
             # Hesaplama adımlarını göster
             with st.expander("Hesaplama Adımları"):
                 for log in st.session_state.hesaplama_log:
-                    st.write(f"**{log['adim']}:** {log['aciklama']}")
+                    st.write("**" + log['adim'] + ":** " + log['aciklama'])
                     
                     # İhtiyaçları tablo olarak göster
                     ihtiyac_data = []
@@ -812,11 +820,3 @@ with tabs[3]:
 # Alt bilgi
 st.markdown("---")
 st.markdown("HydroBuddy Türkçe | Hidroponik besin çözeltisi hesaplama aracı")
-                f"☐ {gubre} ({gubreler[gubre]['formul']})", 
-                value=st.session_state.kullanilabilir_gubreler[gubre],
-                key=f"checkbox_{gubre}"
-            )
-        
-        st.markdown("**B Tankı Gübreleri**")
-        for gubre in b_tank_gubreler:
-            st.session_state.kullanilabilir_gubreler[gubre] = st.checkbox(
