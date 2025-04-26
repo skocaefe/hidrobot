@@ -103,7 +103,12 @@ if 'kullanilabilir_gubreler' not in st.session_state:
 
 if 'kullanilabilir_gubreler' not in st.session_state:
     gubre_anahtarlari = list(gubreler.keys())
-   gubre_anahtarlari = list(gubreler.keys())
+  gubre_key = str(gubre)  # Tam olarak aynı string değerini kullanmak için
+st.session_state.kullanilabilir_gubreler[gubre_key] = st.checkbox(
+    f"☐ {gubre} ({gubreler[gubre]['formul']})",
+    value=st.session_state.kullanilabilir_gubreler.get(gubre_key, False),
+    key=f"checkbox_{gubre_key}"
+)
 st.session_state.kullanilabilir_gubreler = {}
 for gubre in gubre_anahtarlari:
     st.session_state.kullanilabilir_gubreler[gubre] = False
