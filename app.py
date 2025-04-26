@@ -90,19 +90,25 @@ if 'kuyu_suyu' not in st.session_state:
         "NO3": 0.0, "H2PO4": 0.0, "SO4": 0.0, "NH4": 0.0, "K": 0.0, "Ca": 0.0, "Mg": 0.0
     }
 
+# Kullanılabilir gübreler için session state (gubreler ile senkronize)
 if 'kullanilabilir_gubreler' not in st.session_state:
     st.session_state.kullanilabilir_gubreler = {gubre: False for gubre in gubreler.keys()}
 else:
-    for gubre in gubreler.keys():
-        if gubre not in st.session_state.kullanilabilir_gubreler:
-            st.session_state.kullanilabilir_gubreler[gubre] = False
+    # Mevcut gubreler ile senkronize et, eski veya geçersiz anahtarları kaldır
+    mevcut_gubreler = set(gubreler.keys())
+    st.session_state.kullanilabilir_gubreler = {
+        gubre: st.session_state.kullanilabilir_gubreler.get(gubre, False)
+        for gubre in mevcut_gubreler
+    }
 
 if 'kullanilabilir_mikro_gubreler' not in st.session_state:
     st.session_state.kullanilabilir_mikro_gubreler = {gubre: False for gubre in mikro_gubreler.keys()}
 else:
-    for gubre in mikro_gubreler.keys():
-        if gubre not in st.session_state.kullanilabilir_mikro_gubreler:
-            st.session_state.kullanilabilir_mikro_gubreler[gubre] = False
+    mevcut_mikro_gubreler = set(mikro_gubreler.keys())
+    st.session_state.kullanilabilir_mikro_gubreler = {
+        gubre: st.session_state.kullanilabilir_mikro_gubreler.get(gubre, False)
+        for gubre in mevcut_mikro_gubreler
+    }
 
 if 'secilen_mikro_gubreler' not in st.session_state:
     st.session_state.secilen_mikro_gubreler = {
@@ -318,21 +324,34 @@ with tabs[2]:
             for gubre in gubreler:
                 st.session_state.kullanilabilir_mikro_gubreler[gubre] = (gubre == secilen_gubre)
 
-    secilen_gubreler = [gubre for gubre, secildi in st.session_state.kullanilabilir_gubreler.items() if secildi]
-    secilen_mikro_gubreler = [gubre for element, gubre in st.session_state.secilen_mikro_gubreler.items() if gubre]
+    # Seçilen gübreleri güvenli bir şekilde al
+    secilen_gubreler = [
+        gubre for gubre, secildi in st.session_state.kullanilabilir_gubreler.items()
+        if secildi and gubre in gubreler
+    ]
+    secilen_mikro_gubreler = [
+        gubre for element, gubre in st.session_state.secilen_mikro_gubreler.items()
+        if gubre and gubre in mikro_gubreler
+    ]
 
     st.subheader("Seçilen Gübreler")
     if secilen_gubreler:
         st.write("**Makro Gübreler:**")
         for gubre in secilen_gubreler:
-            st.write(f"✓ {gubre} ({gubreler[gubre]['formul']})")
+            try:
+                st.write(f"✓ {gubre} ({gubreler[gubre]['formul']})")
+            except (KeyError, TypeError):
+                st.warning(f"Uyarı: '{gubre}' gübresi geçersiz veya tanımlı değil!")
     else:
         st.warning("Henüz makro gübre seçmediniz!")
 
     if secilen_mikro_gubreler:
         st.write("**Mikro Gübreler:**")
         for gubre in secilen_mikro_gubreler:
-            st.write(f"✓ {gubre} ({mikro_gubreler[gubre]['formul']})")
+            try:
+                st.write(f"✓ {gubre} ({mikro_gubreler[gubre]['formul']})")
+            except (KeyError, TypeError):
+                st.warning(f"Uyarı: '{gubre}' mikro gübresi geçersiz veya tanımlı değil!")
     else:
         st.warning("Henüz mikro gübre seçmediniz!")
 
@@ -351,8 +370,8 @@ with tabs[2]:
 with tabs[3]:
     st.header("Gübre Hesaplama")
     if st.button("Gübre Hesapla", type="primary"):
-        secilen_gubreler = [gubre for gubre, secildi in st.session_state.kullanilabilir_gubreler.items() if secildi]
-        secilen_mikro_gubreler = [gubre for element, gubre in st.session_state.secilen_mikro_gubreler.items() if gubre]
+        secilen_gubreler = [gubre for gubre, secildi in st.session_state.kullanilabilir_gubreler.items() if secildi and gubre in gubreler]
+        secilen_mikro_gubreler = [gubre for element, gubre in st.session_state.secilen_mikro_gubreler.items() if gubre and gubre in mikro_gubreler]
 
         if not secilen_gubreler:
             st.error("Lütfen 'Gübre Seçimi' sekmesinden en az bir makro gübre seçin!")
