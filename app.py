@@ -3,10 +3,10 @@ import pandas as pd
 import numpy as np
 
 # Sayfa ayarları
-st.set_page_config(page_title="Hidrobot Türkçe", page_icon="🌱", layout="wide")
+st.set_page_config(page_title="Hidrobot", page_icon="🌱", layout="wide")
 
 # Başlık ve açıklama
-st.title("🌱 Hidrobot Türkçe")
+st.title("🌱 Hidrobot")
 st.markdown("Hidroponik besin çözeltisi hesaplama aracı")
 
 # İyon değerlikleri
@@ -602,4 +602,4 @@ with tabs[3]:
 
 # Alt bilgi
 st.markdown("---")
-st.markdown("Hidrobot Türkçe | Hidroponik besin çözeltisi hesaplama aracı")
+st.markdown("Hidrobot | Hidroponik besin çözeltisi hesaplama aracı")
