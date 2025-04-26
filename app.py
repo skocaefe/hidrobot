@@ -69,3 +69,47 @@ for i, element in enumerate(mikro_elementler):
         mikro_input[element] = st.number_input(
             f"{element}", min_value=0.0, max_value=200.0, value=25.0, step=1.0, key=f"mikro_{element}"
         )
+# --- Gübre Seçimi Bölümü ---
+
+st.header("🧪 Gübre Seçimi")
+
+# Makro Gübreler Tanımı
+makro_gubreler = {
+    "Kalsiyum Nitrat": {"formul": "Ca(NO3)2.4H2O", "iyonlar": {"Ca": 1, "NO3": 2}, "molar_agirlik": 236.15, "tank": "A"},
+    "Potasyum Nitrat": {"formul": "KNO3", "iyonlar": {"K": 1, "NO3": 1}, "molar_agirlik": 101.10, "tank": "A"},
+    "Magnezyum Nitrat": {"formul": "Mg(NO3)2.6H2O", "iyonlar": {"Mg": 1, "NO3": 2}, "molar_agirlik": 256.41, "tank": "A"},
+    "Monopotasyum Fosfat": {"formul": "KH2PO4", "iyonlar": {"K": 1, "H2PO4": 1}, "molar_agirlik": 136.09, "tank": "B"},
+    "Magnezyum Sülfat": {"formul": "MgSO4.7H2O", "iyonlar": {"Mg": 1, "SO4": 1}, "molar_agirlik": 246.51, "tank": "B"},
+    "Potasyum Sülfat": {"formul": "K2SO4", "iyonlar": {"K": 2, "SO4": 1}, "molar_agirlik": 174.26, "tank": "B"},
+    "Amonyum Sülfat": {"formul": "(NH4)2SO4", "iyonlar": {"NH4": 2, "SO4": 1}, "molar_agirlik": 132.14, "tank": "B"},
+    "Monoamonyum Fosfat": {"formul": "NH4H2PO4", "iyonlar": {"NH4": 1, "H2PO4": 1}, "molar_agirlik": 115.03, "tank": "B"},
+}
+
+# Mikro Gübreler Tanımı
+mikro_gubreler = {
+    "Demir EDDHA": {"element": "Fe", "yuzde": 6},
+    "Demir EDTA": {"element": "Fe", "yuzde": 13},
+    "Demir DTPA": {"element": "Fe", "yuzde": 11},
+    "Borak": {"element": "B", "yuzde": 11},
+    "Borik Asit": {"element": "B", "yuzde": 17.5},
+    "Mangan Sülfat": {"element": "Mn", "yuzde": 32},
+    "Çinko Sülfat": {"element": "Zn", "yuzde": 23},
+    "Bakır Sülfat": {"element": "Cu", "yuzde": 25},
+    "Sodyum Molibdat": {"element": "Mo", "yuzde": 40},
+}
+
+# Makro Gübre Seçimi
+st.subheader("Makro Gübre Seçimi (Tank A ve B)")
+secilen_makro_gubreler = []
+for gubre in makro_gubreler:
+    if st.checkbox(f"{gubre} ({makro_gubreler[gubre]['formul']})", key=f"makro_sec_{gubre}"):
+        secilen_makro_gubreler.append(gubre)
+
+# Mikro Gübre Seçimi
+st.subheader("Mikro Gübre Seçimi")
+secilen_mikro_gubreler = {}
+for element in mikro_elementler:
+    uygun_gubreler = [gubre for gubre, bilgi in mikro_gubreler.items() if bilgi["element"] == element]
+    secim = st.radio(f"{element} için kullanılacak gübre:", ["Seçilmedi"] + uygun_gubreler, horizontal=True, key=f"mikro_sec_{element}")
+    if secim != "Seçilmedi":
+        secilen_mikro_gubreler[element] = secim
