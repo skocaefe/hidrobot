@@ -94,6 +94,7 @@ if 'kuyu_suyu' not in st.session_state:
 if 'kullanilabilir_gubreler' not in st.session_state:
     st.session_state.kullanilabilir_gubreler = {gubre: False for gubre in gubreler.keys()}
 else:
+    # Mevcut gübre listesini güncelle ve kayıp gübreleri sil
     mevcut_gubreler = set(gubreler.keys())
     st.session_state.kullanilabilir_gubreler = {
         gubre: st.session_state.kullanilabilir_gubreler.get(gubre, False)
@@ -103,11 +104,20 @@ else:
 if 'kullanilabilir_mikro_gubreler' not in st.session_state:
     st.session_state.kullanilabilir_mikro_gubreler = {gubre: False for gubre in mikro_gubreler.keys()}
 else:
+    # Mevcut mikro gübre listesini güncelle ve kayıp gübreleri sil
     mevcut_mikro_gubreler = set(mikro_gubreler.keys())
     st.session_state.kullanilabilir_mikro_gubreler = {
         gubre: st.session_state.kullanilabilir_mikro_gubreler.get(gubre, False)
         for gubre in mevcut_mikro_gubreler
     }
+
+# Başlangıçta örnek bir gübre seçili olsun (kullanıcı deneyimini kolaylaştırmak için)
+if all(not secildi for secildi in st.session_state.kullanilabilir_gubreler.values()):
+    # Hiç gübre seçili değilse, varsayılan olarak Kalsiyum Nitrat ve Monopotasyum Fosfat seçili olsun
+    if "Kalsiyum Nitrat" in st.session_state.kullanilabilir_gubreler:
+        st.session_state.kullanilabilir_gubreler["Kalsiyum Nitrat"] = True
+    if "Monopotasyum Fosfat" in st.session_state.kullanilabilir_gubreler:
+        st.session_state.kullanilabilir_gubreler["Monopotasyum Fosfat"] = True
 
 if 'secilen_mikro_gubreler' not in st.session_state:
     st.session_state.secilen_mikro_gubreler = {
@@ -287,21 +297,38 @@ with tabs[2]:
         a_tank_gubreler = [gubre for gubre, bilgi in gubreler.items() if bilgi["tank"] == "A"]
         b_tank_gubreler = [gubre for gubre, bilgi in gubreler.items() if bilgi["tank"] == "B"]
 
-        st.markdown("**A Tankı Gübreleri**")
+        # Gübre seçimi arayüzünü iyileştirme
+        st.markdown("**A Tankı Gübreleri (en az biri seçilmeli)**")
         for gubre in a_tank_gubreler:
-            st.session_state.kullanilabilir_gubreler[gubre] = st.checkbox(
+            secildi = st.checkbox(
                 f"☐ {gubre} ({gubreler[gubre]['formul']})",
                 value=st.session_state.kullanilabilir_gubreler.get(gubre, False),
                 key=f"checkbox_{gubre}"
             )
+            st.session_state.kullanilabilir_gubreler[gubre] = secildi
 
-        st.markdown("**B Tankı Gübreleri**")
+        st.markdown("**B Tankı Gübreleri (en az biri seçilmeli)**")
         for gubre in b_tank_gubreler:
-            st.session_state.kullanilabilir_gubreler[gubre] = st.checkbox(
+            secildi = st.checkbox(
                 f"☐ {gubre} ({gubreler[gubre]['formul']})",
                 value=st.session_state.kullanilabilir_gubreler.get(gubre, False),
                 key=f"checkbox_b_{gubre}"
             )
+            st.session_state.kullanilabilir_gubreler[gubre] = secildi
+        
+        # Tüm gübreleri seçme/kaldırma butonları
+        col_buttons = st.columns(2)
+        with col_buttons[0]:
+            if st.button("Tüm Gübreleri Seç", key="select_all"):
+                for gubre in gubreler:
+                    st.session_state.kullanilabilir_gubreler[gubre] = True
+                st.rerun()
+                
+        with col_buttons[1]:
+            if st.button("Tüm Seçimleri Kaldır", key="clear_all"):
+                for gubre in gubreler:
+                    st.session_state.kullanilabilir_gubreler[gubre] = False
+                st.rerun()
 
     with col2:
         st.subheader("Mikro Gübreler")
