@@ -27,6 +27,11 @@ gubreler = {
     "Monoamonyum Fosfat": {"formul": "NH4H2PO4", "agirlik": 115.03, "tank": "B", "iyonlar": {"NH4": 1, "H2PO4": 1}}
 }
 
+# gubreler sözlüğünün doğru tanımlandığını doğrula
+if not isinstance(gubreler, dict):
+    st.error(f"Hata: gubreler bir sözlük değil, tipi: {type(gubreler)}")
+    st.stop()
+
 # Mikro elementler
 mikro_gubreler = {
     "Demir EDDHA": {"formul": "Fe-EDDHA %6", "agirlik": 435.0, "element": "Fe", "yuzde": 6},
@@ -321,7 +326,10 @@ with tabs[2]:
     with st.expander("Hata Ayıklama: Gübre Durumu"):
         st.write(f"**Seçilen Makro Gübreler:** {secilen_gubreler}")
         st.write(f"**Tüm Kullanılabilir Gübreler Durumu:** {st.session_state.kullanilabilir_gubreler}")
-        st.write(f"**Tanımlı Gübreler (gubreler sözlüğü):** {list(gubreler.keys())}")
+        if isinstance(gubreler, dict):
+            st.write(f"**Tanımlı Gübreler (gubreler sözlüğü):** {list(gubreler.keys())}")
+        else:
+            st.error(f"Hata: gubreler bir sözlük değil, tipi: {type(gubreler)}")
     if secilen_gubreler:
         eksik_besinler = karsilanabilirlik_kontrolu(st.session_state.recete, secilen_gubreler)
         if eksik_besinler:
