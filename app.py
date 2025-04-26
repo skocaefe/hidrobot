@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # Sayfa ayarları
-st.set_page_config(page_title="HidroBot Türkçe", page_icon="🌱", layout="wide")
+st.set_page_config(page_title="HydroBuddy Türkçe", page_icon="🌱", layout="wide")
 
 # Başlık ve açıklama
 st.title("🌱 HydroBuddy Türkçe")
