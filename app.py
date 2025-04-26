@@ -27,7 +27,7 @@ gubreler = {
     "Monoamonyum Fosfat": {"formul": "NH4H2PO4", "agirlik": 115.03, "tank": "B", "iyonlar": {"NH4": 1, "H2PO4": 1}}
 }
 
-# gubreler sözlüğünün doğru tanımlandığını doğrula
+# YENI: gubreler sözlüğünün doğru tanımlandığını doğrula ve iyonları kontrol et
 for gubre_adi, gubre_bilgi in gubreler.items():
     gerekli_anahtarlar = ["formul", "agirlik", "tank", "iyonlar"]
     eksik_anahtarlar = [anahtar for anahtar in gerekli_anahtarlar if anahtar not in gubre_bilgi]
@@ -133,217 +133,7 @@ with st.sidebar:
             "Fe": None, "B": None, "Mn": None, "Zn": None, "Cu": None, "Mo": None
         }
         st.session_state.hesaplama_log = []
-        st.success("Session state sıfırlandı!")
-
-# İyonik denge hesaplama
-def hesapla_iyonik_denge(recete):
-    anyon_toplam = sum(float(recete[ion]) * abs(iyon_degerlikleri[ion]) for ion in ["NO3", "H2PO4", "SO4"])
-    katyon_toplam = sum(float(recete[ion]) * abs(iyon_degerlikleri[ion]) for ion in ["NH4", "K", "Ca", "Mg"])
-    return anyon_toplam, katyon_toplam
-
-# Simulasyon ile besinlerin karşılanıp karşılanamayacağını kontrol etme
-def karsilanabilirlik_kontrolu(recete, secilen_gubreler):
-    net_ihtiyac = {ion: max(0, float(recete[ion])) for ion in ["NO3", "H2PO4", "SO4", "NH4", "K", "Ca", "Mg"]}
-    if "Kalsiyum Nitrat" in secilen_gubreler and net_ihtiyac["Ca"] > 0:
-        net_ihtiyac["NO3"] -= 2 * net_ihtiyac["Ca"]
-        net_ihtiyac["Ca"] = 0
-    if "Magnezyum Nitrat" in secilen_gubreler and net_ihtiyac["Mg"] > 0:
-        net_ihtiyac["NO3"] -= 2 * net_ihtiyac["Mg"]
-        net_ihtiyac["Mg"] = 0
-    elif "Magnezyum Sülfat" in secilen_gubreler and net_ihtiyac["Mg"] > 0:
-        net_ihtiyac["SO4"] -= net_ihtiyac["Mg"]
-        net_ihtiyac["Mg"] = 0
-    if "Monopotasyum Fosfat" in secilen_gubreler and net_ihtiyac["H2PO4"] > 0:
-        net_ihtiyac["K"] -= net_ihtiyac["H2PO4"]
-        net_ihtiyac["H2PO4"] = 0
-    elif "Monoamonyum Fosfat" in secilen_gubreler and net_ihtiyac["H2PO4"] > 0:
-        net_ihtiyac["NH4"] -= net_ihtiyac["H2PO4"]
-        net_ihtiyac["H2PO4"] = 0
-    if "Amonyum Sülfat" in secilen_gubreler and net_ihtiyac["NH4"] > 0:
-        as_miktar = min(net_ihtiyac["NH4"] / 2, net_ihtiyac["SO4"])
-        net_ihtiyac["NH4"] -= 2 * as_miktar
-        net_ihtiyac["SO4"] -= as_miktar
-    if "Potasyum Nitrat" in secilen_gubreler and net_ihtiyac["K"] > 0 and net_ihtiyac["NO3"] > 0:
-        kn_miktar = min(net_ihtiyac["K"], net_ihtiyac["NO3"])
-        net_ihtiyac["K"] -= kn_miktar
-        net_ihtiyac["NO3"] -= kn_miktar
-    if "Potasyum Sülfat" in secilen_gubreler and net_ihtiyac["K"] > 0:
-        net_ihtiyac["SO4"] -= net_ihtiyac["K"] / 2
-        net_ihtiyac["K"] = 0
-    for iyon in net_ihtiyac:
-        if net_ihtiyac[iyon] < 0:
-            net_ihtiyac[iyon] = 0
-    return [iyon for iyon, miktar in net_ihtiyac.items() if miktar > 0.1]
-
-# Ana düzen
-tabs = st.tabs(["Reçete Oluşturma", "Kuyu Suyu", "Gübre Seçimi", "Gübre Hesaplama"])
-
-# Tab 1: Reçete Oluşturma
-with tabs[0]:
-    col1, col2 = st.columns([1, 2])
-    with col1:
-        st.header("Reçete ve Tank Ayarları")
-        secilen_recete = st.selectbox("Hazır Reçete:", options=list(hazir_receteler.keys()))
-        if st.button("Reçeteyi Yükle"):
-            st.session_state.recete = hazir_receteler[secilen_recete].copy()
-            st.success(f"{secilen_recete} reçetesi yüklendi!")
-        st.subheader("Tank Ayarları")
-        st.session_state.a_tank = st.number_input("A Tankı Hacmi (litre):", min_value=1, max_value=1000, value=st.session_state.a_tank)
-        st.session_state.b_tank = st.number_input("B Tankı Hacmi (litre):", min_value=1, max_value=1000, value=st.session_state.b_tank)
-        st.session_state.konsantrasyon = st.number_input("Konsantrasyon Oranı:", min_value=1, max_value=1000, value=st.session_state.konsantrasyon)
-        st.info("""
-        **Tank Ayarları Bilgisi:**
-        - **A Tankı**: Kalsiyum içeren gübreler (örn. kalsiyum nitrat) için.
-        - **B Tankı**: Fosfat ve sülfat içeren gübreler için.
-        - **Konsantrasyon Oranı**: Stok çözeltinin son kullanım konsantrasyonundan kaç kat daha konsantre olduğunu belirtir.
-        """)
-    with col2:
-        st.header("Reçete Değerleri")
-        col_a, col_b = st.columns(2)
-        with col_a:
-            st.subheader("Anyonlar (mmol/L)")
-            for ion in ["NO3", "H2PO4", "SO4"]:
-                st.session_state.recete[ion] = st.number_input(
-                    f"{ion}:", value=float(st.session_state.recete[ion]), min_value=0.0, max_value=30.0, step=0.1, format="%.2f", key=f"{ion}_input"
-                )
-        with col_b:
-            st.subheader("Katyonlar (mmol/L)")
-            for ion in ["NH4", "K", "Ca", "Mg"]:
-                st.session_state.recete[ion] = st.number_input(
-                    f"{ion}:", value=float(st.session_state.recete[ion]), min_value=0.0, max_value=20.0, step=0.1, format="%.2f", key=f"{ion}_input"
-                )
-        st.subheader("Mikro Besinler (mikromol/L)")
-        col_m1, col_m2, col_m3 = st.columns(3)
-        for col, elements in [(col_m1, ["Fe", "Mn"]), (col_m2, ["B", "Zn"]), (col_m3, ["Cu", "Mo"])]:
-            with col:
-                for element in elements:
-                    st.session_state.recete[element] = st.number_input(
-                        f"{element}:", value=float(st.session_state.recete.get(element, 0.0)), min_value=0.0, max_value=100.0, step=0.1, format="%.1f", key=f"{element}_input"
-                    )
-        st.subheader("İyonik Denge")
-        anyon_toplam, katyon_toplam = hesapla_iyonik_denge(st.session_state.recete)
-        col_denge1, col_denge2 = st.columns(2)
-        with col_denge1:
-            anyon_df = pd.DataFrame(
-                [[ion, st.session_state.recete[ion], st.session_state.recete[ion] * abs(iyon_degerlikleri[ion])] for ion in ["NO3", "H2PO4", "SO4"]],
-                columns=["Anyon", "mmol/L", "me/L"]
-            )
-            st.write("**Anyonlar:**")
-            st.dataframe(anyon_df.style.format({"mmol/L": "{:.2f}", "me/L": "{:.2f}"}))
-            st.write(f"**Toplam:** {anyon_toplam:.2f} me/L")
-        with col_denge2:
-            katyon_df = pd.DataFrame(
-                [[ion, st.session_state.recete[ion], st.session_state.recete[ion] * abs(iyon_degerlikleri[ion])] for ion in ["NH4", "K", "Ca", "Mg"]],
-                columns=["Katyon", "mmol/L", "me/L"]
-            )
-            st.write("**Katyonlar:**")
-            st.dataframe(katyon_df.style.format({"mmol/L": "{:.2f}", "me/L": "{:.2f}"}))
-            st.write(f"**Toplam:** {katyon_toplam:.2f} me/L")
-        fark = abs(anyon_toplam - katyon_toplam)
-        if fark < 0.5:
-            st.success(f"✅ İyonik denge iyi durumda! (Fark: {fark:.2f} me/L)")
-        elif fark < 1.0:
-            st.warning(f"⚠️ İyonik denge kabul edilebilir sınırda. (Fark: {fark:.2f} me/L)")
-        else:
-            st.error(f"❌ İyonik denge bozuk! (Fark: {fark:.2f} me/L)")
-            st.markdown("**İyileştirme Önerisi:** " + ("Anyon fazlası var. Daha fazla katyon ekleyin." if anyon_toplam > katyon_toplam else "Katyon fazlası var. Daha fazla anyon ekleyin."))
-
-# Tab 2: Kuyu Suyu
-with tabs[1]:
-    st.header("Kuyu Suyu Analizi")
-    st.info("Kuyu suyu kullanıyorsanız, içindeki iyonları girerek hesaplamada dikkate alınmasını sağlayabilirsiniz.")
-    col1, col2 = st.columns(2)
-    for col, ions in [(col1, ["NO3", "H2PO4", "SO4"]), (col2, ["NH4", "K", "Ca", "Mg"])]:
-        with col:
-            st.subheader(f"{'Anyonlar' if col == col1 else 'Katyonlar'} (mmol/L)")
-            for ion in ions:
-                st.session_state.kuyu_suyu[ion] = st.number_input(
-                    f"{ion}:", value=float(st.session_state.kuyu_suyu[ion]), min_value=0.0, max_value=10.0, step=0.05, format="%.2f", key=f"kuyu_{ion}_input"
-                )
-    if sum(st.session_state.kuyu_suyu.values()) > 0:
-        st.success("✅ Kuyu suyu değerleri kaydedildi ve hesaplamalarda dikkate alınacak.")
-    else:
-        st.info("ℹ️ Şu anda kuyu suyu değeri girilmemiş. Saf su varsayılacak.")
-
-# Tab 3: Gübre Seçimi
-with tabs[2]:
-    st.header("Elimdeki Gübreler")
-    st.info("Kullanmak istediğiniz gübreleri seçin. Hesaplamalar sadece seçilen gübrelerle yapılır.")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("Makro Gübreler")
-        a_tank_gubreler = [gubre for gubre in gubreler.keys() if gubreler[gubre]["tank"] == "A"]
-        b_tank_gubreler = [gubre for gubre in gubreler.keys() if gubreler[gubre]["tank"] == "B"]
-        st.markdown("**A Tankı Gübreleri**")
-        for gubre in a_tank_gubreler:
-            st.session_state.kullanilabilir_gubreler[gubre] = st.checkbox(
-                f"☐ {gubre} ({gubreler[gubre]['formul']})",
-                value=st.session_state.kullanilabilir_gubreler.get(gubre, False),
-                key=f"checkbox_{gubre}"
-            )
-        st.markdown("**B Tankı Gübreleri**")
-        for gubre in b_tank_gubreler:
-            st.session_state.kullanilabilir_gubreler[gubre] = st.checkbox(
-                f"☐ {gubre} ({gubreler[gubre]['formul']})",
-                value=st.session_state.kullanilabilir_gubreler.get(gubre, False),
-                key=f"checkbox_b_{gubre}"
-            )
-    with col2:
-        st.subheader("Mikro Gübreler")
-        mikro_element_gruplari = {}
-        for gubre, bilgi in mikro_gubreler.items():
-            mikro_element_gruplari.setdefault(bilgi["element"], []).append(gubre)
-        for element, gubreler in mikro_element_gruplari.items():
-            st.markdown(f"**{element} Kaynağı**")
-            secilen_gubre = st.radio(
-                f"{element} için gübre seçimi",
-                options=["Seçilmedi"] + gubreler,
-                index=0 if st.session_state.secilen_mikro_gubreler[element] not in gubreler else gubreler.index(st.session_state.secilen_mikro_gubreler[element]) + 1,
-                key=f"radio_{element}"
-            )
-            st.session_state.secilen_mikro_gubreler[element] = None if secilen_gubre == "Seçilmedi" else secilen_gubre
-            for gubre in gubreler:
-                st.session_state.kullanilabilir_mikro_gubreler[gubre] = (gubre == secilen_gubre)
-    # Seçilen gübreleri al
-    secilen_gubreler = [gubre for gubre, secildi in st.session_state.kullanilabilir_gubreler.items() if secildi]
-    secilen_mikro_gubreler = [gubre for element, gubre in st.session_state.secilen_mikro_gubreler.items() if gubre]
-    st.subheader("Seçilen Gübreler")
-    if secilen_gubreler:
-        st.write("**Makro Gübreler:**")
-        for gubre in secilen_gubreler:
-            if gubre in gubreler:
-                st.write(f"✓ {gubre} ({gubreler[gubre]['formul']})")
-            else:
-                st.warning(f"Uyarı: '{gubre}' gübresi tanımlı değil!")
-    else:
-        st.warning("Henüz makro gübre seçmediniz!")
-    if secilen_mikro_gubreler:
-        st.write("**Mikro Gübreler:**")
-        for gubre in secilen_mikro_gubreler:
-            if gubre in mikro_gubreler:
-                st.write(f"✓ {gubre} ({mikro_gubreler[gubre]['formul']})")
-            else:
-                st.warning(f"Uyarı: '{gubre}' mikro gübresi tanımlı değil!")
-    else:
-        st.warning("Henüz mikro gübre seçmediniz!")
-    # Hata ayıklama
-    with st.expander("Hata Ayıklama: Gübre Durumu"):
-        st.write(f"**Seçilen Makro Gübreler:** {secilen_gubreler}")
-        st.write(f"**Tüm Kullanılabilir Gübreler Durumu:** {st.session_state.kullanilabilir_gubreler}")
-        if isinstance(gubreler, dict):
-            st.write(f"**Tanımlı Gübreler (gubreler sözlüğü):** {list(gubreler.keys())}")
-        else:
-            st.error(f"Hata: gubreler bir sözlük değil, tipi: {type(gubreler)}")
-    if secilen_gubreler:
-        eksik_besinler = karsilanabilirlik_kontrolu(st.session_state.recete, secilen_gubreler)
-        if eksik_besinler:
-            st.error(f"⚠️ Seçilen gübrelerle karşılanamayan besinler: {', '.join(eksik_besinler)}")
-            st.markdown("**Önerilen Gübreler:**")
-            for besin in eksik_besinler:
-                oneriler = [f"☐ {gubre} ({bilgi['formul']})" for gubre, bilgi in gubreler.items() if besin in bilgi["iyonlar"] and gubre not in secilen_gubreler]
-                st.markdown(f"- {besin} için: {', '.join(oneriler) if oneriler else 'Reçeteyi gözden geçirin.'}")
-        else:
-            st.success("✅ Seçilen gübrelerle tüm besinler karşılanabilir.")
+        st.success("✅ Seçilen gübrelerle tüm besinler karşılanabilir.")
 
 # Tab 4: Gübre Hesaplama
 with tabs[3]:
@@ -352,17 +142,29 @@ with tabs[3]:
         # Seçilen gübreleri al
         secilen_gubreler = [gubre for gubre, secildi in st.session_state.kullanilabilir_gubreler.items() if secildi]
         secilen_mikro_gubreler = [gubre for element, gubre in st.session_state.secilen_mikro_gubreler.items() if gubre]
+        
+        # YENI: Seçilen gübreleri ve gübreler sözlüğünü kontrol et (hata ayıklama)
+        st.write("**Hata Ayıklama:** Seçilen gübreler:", secilen_gubreler)
+        st.write("**Hata Ayıklama:** Gübreler sözlüğündeki anahtarlar:", list(gubreler.keys()))
+        
         # Hata ayıklama logu
         st.session_state.hesaplama_log = []
         st.session_state.hesaplama_log.append({
             "adım": "Başlangıç", "açıklama": f"Seçilen makro gübreler: {secilen_gubreler}", "ihtiyac": {}
         })
+        
+        # YENI: Her seçilen gübrenin gübreler sözlüğünde olup olmadığını kontrol et
+        gecersiz_gubreler = []
+        for gubre in secilen_gubreler:
+            if gubre not in gubreler:
+                gecersiz_gubreler.append(gubre)
+                st.error(f"Uyarı: '{gubre}' gübresi gübreler sözlüğünde bulunamadı!")
+        
         if not secilen_gubreler:
             st.error("Lütfen 'Gübre Seçimi' sekmesinden en az bir makro gübre seçin!")
             st.warning(f"Hata Ayıklama: Seçilen gübreler boş. Tüm gübre durumu: {st.session_state.kullanilabilir_gubreler}")
         else:
             # Seçilen gübrelerin geçerliliğini kontrol et
-            gecersiz_gubreler = [gubre for gubre in secilen_gubreler if gubre not in gubreler]
             if gecersiz_gubreler:
                 st.error(f"Geçersiz gübreler seçildi: {', '.join(gecersiz_gubreler)}")
                 st.session_state.hesaplama_log.append({
@@ -597,7 +399,14 @@ with tabs[3]:
                     st.markdown("**Önerilen Gübreler:**")
                     for iyon, miktar in net_ihtiyac.items():
                         if miktar > 0.1:
-                            oneriler = [f"☐ {gubre} ({bilgi['formul']})" for gubre, bilgi in gubreler.items() if iyon in bilgi["iyonlar"] and gubre not in secilen_gubreler]
+                            # YENI: Hata veren kod düzeltildi
+                            oneriler = []
+                            for gubre, bilgi in gubreler.items():
+                                try:
+                                    if "iyonlar" in bilgi and iyon in bilgi["iyonlar"] and gubre not in secilen_gubreler:
+                                        oneriler.append(f"☐ {gubre} ({bilgi['formul']})")
+                                except Exception as e:
+                                    st.error(f"Hata: '{gubre}' gübresi önerileri oluştururken sorun: {str(e)}")
                             st.markdown(f"- {iyon} için: {', '.join(oneriler) if oneriler else 'Reçeteyi gözden geçirin.'}")
                 else:
                     st.success("✅ Tüm besinler seçilen gübrelerle karşılandı.")
@@ -612,4 +421,236 @@ with tabs[3]:
 
 # Alt bilgi
 st.markdown("---")
-st.markdown("HydroBuddy Türkçe | Hidroponik besin çözeltisi hesaplama aracı")
+st.markdown("HydroBuddy Türkçe | Hidroponik besin çözeltisi hesaplama aracı")Session state sıfırlandı!")
+
+# İyonik denge hesaplama
+def hesapla_iyonik_denge(recete):
+    anyon_toplam = sum(float(recete[ion]) * abs(iyon_degerlikleri[ion]) for ion in ["NO3", "H2PO4", "SO4"])
+    katyon_toplam = sum(float(recete[ion]) * abs(iyon_degerlikleri[ion]) for ion in ["NH4", "K", "Ca", "Mg"])
+    return anyon_toplam, katyon_toplam
+
+# Simulasyon ile besinlerin karşılanıp karşılanamayacağını kontrol etme
+def karsilanabilirlik_kontrolu(recete, secilen_gubreler):
+    # YENI: secilen_gubreler'in gubreler sözlüğünde olup olmadığını kontrol et
+    for gubre in secilen_gubreler:
+        if gubre not in gubreler:
+            st.warning(f"Uyarı: '{gubre}' karşılanabilirlik kontrolünde tanımlı değil!")
+    
+    net_ihtiyac = {ion: max(0, float(recete[ion])) for ion in ["NO3", "H2PO4", "SO4", "NH4", "K", "Ca", "Mg"]}
+    
+    # Sadece gübreler sözlüğünde olan gübreleri kullan
+    gecerli_gubreler = [g for g in secilen_gubreler if g in gubreler]
+    
+    if "Kalsiyum Nitrat" in gecerli_gubreler and net_ihtiyac["Ca"] > 0:
+        net_ihtiyac["NO3"] -= 2 * net_ihtiyac["Ca"]
+        net_ihtiyac["Ca"] = 0
+    if "Magnezyum Nitrat" in gecerli_gubreler and net_ihtiyac["Mg"] > 0:
+        net_ihtiyac["NO3"] -= 2 * net_ihtiyac["Mg"]
+        net_ihtiyac["Mg"] = 0
+    elif "Magnezyum Sülfat" in gecerli_gubreler and net_ihtiyac["Mg"] > 0:
+        net_ihtiyac["SO4"] -= net_ihtiyac["Mg"]
+        net_ihtiyac["Mg"] = 0
+    if "Monopotasyum Fosfat" in gecerli_gubreler and net_ihtiyac["H2PO4"] > 0:
+        net_ihtiyac["K"] -= net_ihtiyac["H2PO4"]
+        net_ihtiyac["H2PO4"] = 0
+    elif "Monoamonyum Fosfat" in gecerli_gubreler and net_ihtiyac["H2PO4"] > 0:
+        net_ihtiyac["NH4"] -= net_ihtiyac["H2PO4"]
+        net_ihtiyac["H2PO4"] = 0
+    if "Amonyum Sülfat" in gecerli_gubreler and net_ihtiyac["NH4"] > 0:
+        as_miktar = min(net_ihtiyac["NH4"] / 2, net_ihtiyac["SO4"])
+        net_ihtiyac["NH4"] -= 2 * as_miktar
+        net_ihtiyac["SO4"] -= as_miktar
+    if "Potasyum Nitrat" in gecerli_gubreler and net_ihtiyac["K"] > 0 and net_ihtiyac["NO3"] > 0:
+        kn_miktar = min(net_ihtiyac["K"], net_ihtiyac["NO3"])
+        net_ihtiyac["K"] -= kn_miktar
+        net_ihtiyac["NO3"] -= kn_miktar
+    if "Potasyum Sülfat" in gecerli_gubreler and net_ihtiyac["K"] > 0:
+        net_ihtiyac["SO4"] -= net_ihtiyac["K"] / 2
+        net_ihtiyac["K"] = 0
+    for iyon in net_ihtiyac:
+        if net_ihtiyac[iyon] < 0:
+            net_ihtiyac[iyon] = 0
+    return [iyon for iyon, miktar in net_ihtiyac.items() if miktar > 0.1]
+
+# Ana düzen
+tabs = st.tabs(["Reçete Oluşturma", "Kuyu Suyu", "Gübre Seçimi", "Gübre Hesaplama"])
+
+# Tab 1: Reçete Oluşturma
+with tabs[0]:
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        st.header("Reçete ve Tank Ayarları")
+        secilen_recete = st.selectbox("Hazır Reçete:", options=list(hazir_receteler.keys()))
+        if st.button("Reçeteyi Yükle"):
+            st.session_state.recete = hazir_receteler[secilen_recete].copy()
+            st.success(f"{secilen_recete} reçetesi yüklendi!")
+        st.subheader("Tank Ayarları")
+        st.session_state.a_tank = st.number_input("A Tankı Hacmi (litre):", min_value=1, max_value=1000, value=st.session_state.a_tank)
+        st.session_state.b_tank = st.number_input("B Tankı Hacmi (litre):", min_value=1, max_value=1000, value=st.session_state.b_tank)
+        st.session_state.konsantrasyon = st.number_input("Konsantrasyon Oranı:", min_value=1, max_value=1000, value=st.session_state.konsantrasyon)
+        st.info("""
+        **Tank Ayarları Bilgisi:**
+        - **A Tankı**: Kalsiyum içeren gübreler (örn. kalsiyum nitrat) için.
+        - **B Tankı**: Fosfat ve sülfat içeren gübreler için.
+        - **Konsantrasyon Oranı**: Stok çözeltinin son kullanım konsantrasyonundan kaç kat daha konsantre olduğunu belirtir.
+        """)
+    with col2:
+        st.header("Reçete Değerleri")
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.subheader("Anyonlar (mmol/L)")
+            for ion in ["NO3", "H2PO4", "SO4"]:
+                st.session_state.recete[ion] = st.number_input(
+                    f"{ion}:", value=float(st.session_state.recete[ion]), min_value=0.0, max_value=30.0, step=0.1, format="%.2f", key=f"{ion}_input"
+                )
+        with col_b:
+            st.subheader("Katyonlar (mmol/L)")
+            for ion in ["NH4", "K", "Ca", "Mg"]:
+                st.session_state.recete[ion] = st.number_input(
+                    f"{ion}:", value=float(st.session_state.recete[ion]), min_value=0.0, max_value=20.0, step=0.1, format="%.2f", key=f"{ion}_input"
+                )
+        st.subheader("Mikro Besinler (mikromol/L)")
+        col_m1, col_m2, col_m3 = st.columns(3)
+        for col, elements in [(col_m1, ["Fe", "Mn"]), (col_m2, ["B", "Zn"]), (col_m3, ["Cu", "Mo"])]:
+            with col:
+                for element in elements:
+                    st.session_state.recete[element] = st.number_input(
+                        f"{element}:", value=float(st.session_state.recete.get(element, 0.0)), min_value=0.0, max_value=100.0, step=0.1, format="%.1f", key=f"{element}_input"
+                    )
+        st.subheader("İyonik Denge")
+        anyon_toplam, katyon_toplam = hesapla_iyonik_denge(st.session_state.recete)
+        col_denge1, col_denge2 = st.columns(2)
+        with col_denge1:
+            anyon_df = pd.DataFrame(
+                [[ion, st.session_state.recete[ion], st.session_state.recete[ion] * abs(iyon_degerlikleri[ion])] for ion in ["NO3", "H2PO4", "SO4"]],
+                columns=["Anyon", "mmol/L", "me/L"]
+            )
+            st.write("**Anyonlar:**")
+            st.dataframe(anyon_df.style.format({"mmol/L": "{:.2f}", "me/L": "{:.2f}"}))
+            st.write(f"**Toplam:** {anyon_toplam:.2f} me/L")
+        with col_denge2:
+            katyon_df = pd.DataFrame(
+                [[ion, st.session_state.recete[ion], st.session_state.recete[ion] * abs(iyon_degerlikleri[ion])] for ion in ["NH4", "K", "Ca", "Mg"]],
+                columns=["Katyon", "mmol/L", "me/L"]
+            )
+            st.write("**Katyonlar:**")
+            st.dataframe(katyon_df.style.format({"mmol/L": "{:.2f}", "me/L": "{:.2f}"}))
+            st.write(f"**Toplam:** {katyon_toplam:.2f} me/L")
+        fark = abs(anyon_toplam - katyon_toplam)
+        if fark < 0.5:
+            st.success(f"✅ İyonik denge iyi durumda! (Fark: {fark:.2f} me/L)")
+        elif fark < 1.0:
+            st.warning(f"⚠️ İyonik denge kabul edilebilir sınırda. (Fark: {fark:.2f} me/L)")
+        else:
+            st.error(f"❌ İyonik denge bozuk! (Fark: {fark:.2f} me/L)")
+            st.markdown("**İyileştirme Önerisi:** " + ("Anyon fazlası var. Daha fazla katyon ekleyin." if anyon_toplam > katyon_toplam else "Katyon fazlası var. Daha fazla anyon ekleyin."))
+
+# Tab 2: Kuyu Suyu
+with tabs[1]:
+    st.header("Kuyu Suyu Analizi")
+    st.info("Kuyu suyu kullanıyorsanız, içindeki iyonları girerek hesaplamada dikkate alınmasını sağlayabilirsiniz.")
+    col1, col2 = st.columns(2)
+    for col, ions in [(col1, ["NO3", "H2PO4", "SO4"]), (col2, ["NH4", "K", "Ca", "Mg"])]:
+        with col:
+            st.subheader(f"{'Anyonlar' if col == col1 else 'Katyonlar'} (mmol/L)")
+            for ion in ions:
+                st.session_state.kuyu_suyu[ion] = st.number_input(
+                    f"{ion}:", value=float(st.session_state.kuyu_suyu[ion]), min_value=0.0, max_value=10.0, step=0.05, format="%.2f", key=f"kuyu_{ion}_input"
+                )
+    if sum(st.session_state.kuyu_suyu.values()) > 0:
+        st.success("✅ Kuyu suyu değerleri kaydedildi ve hesaplamalarda dikkate alınacak.")
+    else:
+        st.info("ℹ️ Şu anda kuyu suyu değeri girilmemiş. Saf su varsayılacak.")
+
+# Tab 3: Gübre Seçimi
+with tabs[2]:
+    st.header("Elimdeki Gübreler")
+    st.info("Kullanmak istediğiniz gübreleri seçin. Hesaplamalar sadece seçilen gübrelerle yapılır.")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("Makro Gübreler")
+        a_tank_gubreler = [gubre for gubre in gubreler.keys() if gubreler[gubre]["tank"] == "A"]
+        b_tank_gubreler = [gubre for gubre in gubreler.keys() if gubreler[gubre]["tank"] == "B"]
+        st.markdown("**A Tankı Gübreleri**")
+        for gubre in a_tank_gubreler:
+            st.session_state.kullanilabilir_gubreler[gubre] = st.checkbox(
+                f"☐ {gubre} ({gubreler[gubre]['formul']})",
+                value=st.session_state.kullanilabilir_gubreler.get(gubre, False),
+                key=f"checkbox_{gubre}"
+            )
+        st.markdown("**B Tankı Gübreleri**")
+        for gubre in b_tank_gubreler:
+            st.session_state.kullanilabilir_gubreler[gubre] = st.checkbox(
+                f"☐ {gubre} ({gubreler[gubre]['formul']})",
+                value=st.session_state.kullanilabilir_gubreler.get(gubre, False),
+                key=f"checkbox_b_{gubre}"
+            )
+    with col2:
+        st.subheader("Mikro Gübreler")
+        mikro_element_gruplari = {}
+        for gubre, bilgi in mikro_gubreler.items():
+            mikro_element_gruplari.setdefault(bilgi["element"], []).append(gubre)
+        for element, gubreler in mikro_element_gruplari.items():
+            st.markdown(f"**{element} Kaynağı**")
+            secilen_gubre = st.radio(
+                f"{element} için gübre seçimi",
+                options=["Seçilmedi"] + gubreler,
+                index=0 if st.session_state.secilen_mikro_gubreler[element] not in gubreler else gubreler.index(st.session_state.secilen_mikro_gubreler[element]) + 1,
+                key=f"radio_{element}"
+            )
+            st.session_state.secilen_mikro_gubreler[element] = None if secilen_gubre == "Seçilmedi" else secilen_gubre
+            for gubre in gubreler:
+                st.session_state.kullanilabilir_mikro_gubreler[gubre] = (gubre == secilen_gubre)
+    # Seçilen gübreleri al
+    secilen_gubreler = [gubre for gubre, secildi in st.session_state.kullanilabilir_gubreler.items() if secildi]
+    secilen_mikro_gubreler = [gubre for element, gubre in st.session_state.secilen_mikro_gubreler.items() if gubre]
+    st.subheader("Seçilen Gübreler")
+    if secilen_gubreler:
+        st.write("**Makro Gübreler:**")
+        for gubre in secilen_gubreler:
+            if gubre in gubreler:
+                st.write(f"✓ {gubre} ({gubreler[gubre]['formul']})")
+            else:
+                st.warning(f"Uyarı: '{gubre}' gübresi tanımlı değil!")
+    else:
+        st.warning("Henüz makro gübre seçmediniz!")
+    if secilen_mikro_gubreler:
+        st.write("**Mikro Gübreler:**")
+        for gubre in secilen_mikro_gubreler:
+            if gubre in mikro_gubreler:
+                st.write(f"✓ {gubre} ({mikro_gubreler[gubre]['formul']})")
+            else:
+                st.warning(f"Uyarı: '{gubre}' mikro gübresi tanımlı değil!")
+    else:
+        st.warning("Henüz mikro gübre seçmediniz!")
+    # Hata ayıklama
+    with st.expander("Hata Ayıklama: Gübre Durumu"):
+        st.write(f"**Seçilen Makro Gübreler:** {secilen_gubreler}")
+        st.write(f"**Tüm Kullanılabilir Gübreler Durumu:** {st.session_state.kullanilabilir_gubreler}")
+        if isinstance(gubreler, dict):
+            st.write(f"**Tanımlı Gübreler (gubreler sözlüğü):** {list(gubreler.keys())}")
+            
+            # YENI: Gübre uyuşmazlıklarını kontrol et
+            for gubre in secilen_gubreler:
+                if gubre not in gubreler:
+                    st.error(f"Uyuşmazlık: '{gubre}' gübresi seçilmiş ama gübreler sözlüğünde yok!")
+        else:
+            st.error(f"Hata: gubreler bir sözlük değil, tipi: {type(gubreler)}")
+            
+    if secilen_gubreler:
+        eksik_besinler = karsilanabilirlik_kontrolu(st.session_state.recete, secilen_gubreler)
+        if eksik_besinler:
+            st.error(f"⚠️ Seçilen gübrelerle karşılanamayan besinler: {', '.join(eksik_besinler)}")
+            st.markdown("**Önerilen Gübreler:**")
+            for besin in eksik_besinler:
+                # YENI: Hata veren kod düzeltildi
+                oneriler = []
+                for gubre, bilgi in gubreler.items():
+                    try:
+                        if "iyonlar" in bilgi and besin in bilgi["iyonlar"] and gubre not in secilen_gubreler:
+                            oneriler.append(f"☐ {gubre} ({bilgi['formul']})")
+                    except Exception as e:
+                        st.error(f"Hata: '{gubre}' gübresi önerileri oluştururken sorun: {str(e)}")
+                st.markdown(f"- {besin} için: {', '.join(oneriler) if oneriler else 'Reçeteyi gözden geçirin.'}")
+        else:
+            st.success("
