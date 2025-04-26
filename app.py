@@ -424,7 +424,7 @@ with tabs[2]:
             a_tank_gubreler = {}
             b_tank_gubreler = {}
             
-            # Mevcut gübreleri optimize ederek kullan
+            # Her gübre için ihtiyaç olan veya sağlanabilecek miktar hesaplama
             for gubre in secilen_gubreler:
                 bilgi = gubreler[gubre]
                 
@@ -433,7 +433,8 @@ with tabs[2]:
                 for iyon, miktar in bilgi["iyonlar"].items():
                     if ihtiyac[iyon] > 0:
                         oran = ihtiyac[iyon] / miktar
-                        min_oran = min(min_oran, oran)
+                        if oran < min_oran:
+                            min_oran = oran
                 
                 # Bu gübre ile en fazla besin sağla
                 if min_oran != float('inf') and min_oran > 0:
