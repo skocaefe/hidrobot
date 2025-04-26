@@ -424,31 +424,64 @@ with tabs[2]:
             a_tank_gubreler = {}
             b_tank_gubreler = {}
             
-            # Her gübre için ihtiyaç olan veya sağlanabilecek miktar hesaplama
-            for gubre in secilen_gubreler:
-                bilgi = gubreler[gubre]
-                
-                # Gübre ile sağlanacak besin miktarını hesapla
-                min_oran = float('inf')
-                for iyon, miktar in bilgi["iyonlar"].items():
-                    if ihtiyac[iyon] > 0:
-                        oran = ihtiyac[iyon] / miktar
-                        if oran < min_oran:
-                            min_oran = oran
-                
-                # Bu gübre ile en fazla besin sağla
-                if min_oran != float('inf') and min_oran > 0:
-                    gubre_miktari = min_oran
-                    
-                    # Tankları ayrı ayrı kontrol et
-                    if bilgi["tank"] == "A":
-                        a_tank_gubreler[gubre] = gubre_miktari
-                    else:
-                        b_tank_gubreler[gubre] = gubre_miktari
-                    
-                    # Sağlanan besinleri ihtiyaçtan düş
-                    for iyon, miktar in bilgi["iyonlar"].items():
-                        ihtiyac[iyon] -= gubre_miktari * miktar
+            # Gübre hesaplama algoritması - öncelik sırasına göre
+            
+            # 1. Ca ve Mg ihtiyaçlarını karşıla (temel katyonlar)
+            if "Kalsiyum Nitrat" in secilen_gubreler and ihtiyac["Ca"] > 0:
+                a_tank_gubreler["Kalsiyum Nitrat"] = ihtiyac["Ca"]
+                ihtiyac["NO3"] -= 2 * ihtiyac["Ca"]  # Her Ca için 2 NO3
+                ihtiyac["Ca"] = 0
+            
+            if "Magnezyum Sülfat" in secilen_gubreler and ihtiyac["Mg"] > 0:
+                b_tank_gubreler["Magnezyum Sülfat"] = ihtiyac["Mg"]
+                ihtiyac["SO4"] -= ihtiyac["Mg"]  # Her Mg için 1 SO4
+                ihtiyac["Mg"] = 0
+            
+            if "Magnezyum Nitrat" in secilen_gubreler and ihtiyac["Mg"] > 0:
+                a_tank_gubreler["Magnezyum Nitrat"] = ihtiyac["Mg"]
+                ihtiyac["NO3"] -= 2 * ihtiyac["Mg"]  # Her Mg için 2 NO3
+                ihtiyac["Mg"] = 0
+            
+            # 2. Fosfat ihtiyacını karşıla (önce MAP sonra MKP)
+            if "Monoamonyum Fosfat" in secilen_gubreler and ihtiyac["H2PO4"] > 0 and ihtiyac["NH4"] > 0:
+                map_miktar = min(ihtiyac["H2PO4"], ihtiyac["NH4"])
+                if map_miktar > 0:
+                    b_tank_gubreler["Monoamonyum Fosfat"] = map_miktar
+                    ihtiyac["H2PO4"] -= map_miktar
+                    ihtiyac["NH4"] -= map_miktar
+            
+            if "Monopotasyum Fosfat" in secilen_gubreler and ihtiyac["H2PO4"] > 0 and ihtiyac["K"] > 0:
+                mkp_miktar = min(ihtiyac["H2PO4"], ihtiyac["K"])
+                if mkp_miktar > 0:
+                    b_tank_gubreler["Monopotasyum Fosfat"] = mkp_miktar
+                    ihtiyac["H2PO4"] -= mkp_miktar
+                    ihtiyac["K"] -= mkp_miktar
+            
+            # 3. Kalan NH4 ihtiyacını karşıla
+            if "Amonyum Sülfat" in secilen_gubreler and ihtiyac["NH4"] > 0 and ihtiyac["SO4"] > 0:
+                as_miktar = min(ihtiyac["NH4"] / 2, ihtiyac["SO4"])
+                if as_miktar > 0:
+                    b_tank_gubreler["Amonyum Sülfat"] = as_miktar
+                    ihtiyac["NH4"] -= 2 * as_miktar  # Her AS için 2 NH4
+                    ihtiyac["SO4"] -= as_miktar
+            
+            # 4. Kalan K ihtiyacını karşıla
+            if "Potasyum Nitrat" in secilen_gubreler and ihtiyac["K"] > 0 and ihtiyac["NO3"] > 0:
+                kn_miktar = min(ihtiyac["K"], ihtiyac["NO3"])
+                if kn_miktar > 0:
+                    a_tank_gubreler["Potasyum Nitrat"] = kn_miktar
+                    ihtiyac["K"] -= kn_miktar
+                    ihtiyac["NO3"] -= kn_miktar
+            
+            if "Potasyum Sülfat" in secilen_gubreler and ihtiyac["K"] > 0 and ihtiyac["SO4"] > 0:
+                ks_miktar = min(ihtiyac["K"] / 2, ihtiyac["SO4"])
+                if ks_miktar > 0:
+                    b_tank_gubreler["Potasyum Sülfat"] = ks_miktar
+                    ihtiyac["K"] -= 2 * ks_miktar  # Her K2SO4 için 2 K
+                    ihtiyac["SO4"] -= ks_miktar
+            
+            # 5. Debugging için - hesaplama sonrası kalan ihtiyaçları yazdır
+            st.session_state.kalan_ihtiyac = {k: round(v, 2) for k, v in ihtiyac.items()}
             
             # Mikro elementler için gübre hesaplama
             mikro_sonuc = []
@@ -555,23 +588,34 @@ with tabs[2]:
             eksik_var = False
             uyari = ""
             
-            # Kalan ihtiyaçları kontrol et
+            # Kalan ihtiyaçları kontrol et (negatif değerlere izin verme)
             for iyon, miktar in ihtiyac.items():
-                if miktar > 0.1:
+                if miktar > 0.1:  # 0.1 mmol/L'den büyük eksikler önemli
                     eksik_var = True
                     uyari += f" {iyon}: {miktar:.2f} mmol/L,"
             
             if eksik_var:
                 st.warning(f"⚠️ Seçilen gübrelerle karşılanamayan besinler:{uyari[:-1]}")
                 st.markdown("**Önerilen Ek Gübreler:**")
+                
+                # Her eksik besin için öneriler
                 for iyon, miktar in ihtiyac.items():
                     if miktar > 0.1:
-                        st.markdown(f"- {iyon} için:")
+                        oneriler = []
                         for gubre, bilgi in gubreler.items():
                             if iyon in bilgi["iyonlar"] and gubre not in secilen_gubreler:
-                                st.markdown(f"  ☐ {gubre} ({bilgi['formul']})")
+                                oneriler.append(f"☐ {gubre} ({bilgi['formul']})")
+                        
+                        if oneriler:
+                            st.markdown(f"- {iyon} için: {', '.join(oneriler)}")
             else:
                 st.success("✅ Tüm besinler seçilen gübrelerle karşılandı.")
+                
+            # Debugging bilgisi ekle
+            with st.expander("Debugging Bilgisi (Kalan İhtiyaçlar)"):
+                if hasattr(st.session_state, 'kalan_ihtiyac'):
+                    for iyon, miktar in st.session_state.kalan_ihtiyac.items():
+                        st.write(f"{iyon}: {miktar} mmol/L")
 
 # Alt bilgi
 st.markdown("---")
