@@ -416,7 +416,7 @@ with tabs[2]:
         st.markdown("**A Tankı Gübreleri**")
         for gubre in a_tank_gubreler:
             st.session_state.kullanilabilir_gubreler[gubre] = st.checkbox(
-                f"☐ {gubre} ({gubreler[gubre]['formul']})", 
+                "☐ " + gubre + " (" + gubreler[gubre]['formul'] + ")",
                 value=st.session_state.kullanilabilir_gubreler[gubre],
                 key=f"checkbox_{gubre}"
             )
@@ -489,7 +489,11 @@ with tabs[2]:
         st.error("⚠️ Seçilen gübrelerle sağlanamayacak besinler: " + ", ".join(eksik_besinler))
         st.markdown("Önerilen gübreler:")
         for besin in eksik_besinler:
-            st.markdown(f"- {besin} için: " + ", ".join([f"☐ {gubre}" for gubre, bilgi in gubreler.items() if besin in bilgi["iyonlar"] and gubre not in secilen_gubreler]))
+            gubre_onerileri = []
+            for gubre, bilgi in gubreler.items():
+                if besin in bilgi["iyonlar"] and gubre not in secilen_gubreler:
+                    gubre_onerileri.append("☐ " + gubre)
+            st.markdown("- " + besin + " için: " + ", ".join(gubre_onerileri))
     else:
         if secilen_gubreler:
             st.success("✅ Seçilen gübrelerle tüm makro besinler sağlanabilir.")
@@ -784,10 +788,10 @@ with tabs[3]:
                         oneriler = []
                         for gubre, bilgi in gubreler.items():
                             if iyon in bilgi["iyonlar"] and gubre not in secilen_gubreler:
-                                oneriler.append(f"☐ {gubre} ({bilgi['formul']})")
+                                oneriler.append("☐ " + gubre + " (" + bilgi['formul'] + ")")
                         
                         if oneriler:
-                            st.markdown(f"- {iyon} için: {', '.join(oneriler)}")
+                            st.markdown("- " + iyon + " için: " + ", ".join(oneriler))
             else:
                 st.success("✅ Tüm besinler seçilen gübrelerle karşılandı.")
             
