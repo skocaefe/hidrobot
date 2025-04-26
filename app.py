@@ -15,12 +15,11 @@ iyon_degerlikleri = {
     "NH4": 1, "K": 1, "Ca": 2, "Mg": 2
 }
 
-# Gübre bilgileri
+# Gübre bilgileri (Kalsiyum Amonyum Nitrat kaldırıldı)
 gubreler = {
     "Kalsiyum Nitrat": {"formul": "Ca(NO3)2.4H2O", "agirlik": 236.15, "tank": "A", "iyonlar": {"Ca": 1, "NO3": 2}},
     "Potasyum Nitrat": {"formul": "KNO3", "agirlik": 101.10, "tank": "A", "iyonlar": {"K": 1, "NO3": 1}},
     "Magnezyum Nitrat": {"formul": "Mg(NO3)2.6H2O", "agirlik": 256.41, "tank": "A", "iyonlar": {"Mg": 1, "NO3": 2}},
-    "Kalsiyum Amonyum Nitrat": {"formul": "5Ca(NO3)2.NH4NO3.10H2O", "agirlik": 1080.0, "tank": "A", "iyonlar": {"Ca": 5, "NH4": 1, "NO3": 11}},
     "Monopotasyum Fosfat": {"formul": "KH2PO4", "agirlik": 136.09, "tank": "B", "iyonlar": {"K": 1, "H2PO4": 1}},
     "Magnezyum Sülfat": {"formul": "MgSO4.7H2O", "agirlik": 246.51, "tank": "B", "iyonlar": {"Mg": 1, "SO4": 1}},
     "Potasyum Sülfat": {"formul": "K2SO4", "agirlik": 174.26, "tank": "B", "iyonlar": {"K": 2, "SO4": 1}},
@@ -93,31 +92,9 @@ if 'kuyu_suyu' not in st.session_state:
 # Kullanılabilir gübreler için session state
 if 'kullanilabilir_gubreler' not in st.session_state:
     st.session_state.kullanilabilir_gubreler = {gubre: False for gubre in gubreler.keys()}
-else:
-    # Mevcut gübre listesini güncelle ve kayıp gübreleri sil
-    mevcut_gubreler = set(gubreler.keys())
-    st.session_state.kullanilabilir_gubreler = {
-        gubre: st.session_state.kullanilabilir_gubreler.get(gubre, False)
-        for gubre in mevcut_gubreler
-    }
 
 if 'kullanilabilir_mikro_gubreler' not in st.session_state:
     st.session_state.kullanilabilir_mikro_gubreler = {gubre: False for gubre in mikro_gubreler.keys()}
-else:
-    # Mevcut mikro gübre listesini güncelle ve kayıp gübreleri sil
-    mevcut_mikro_gubreler = set(mikro_gubreler.keys())
-    st.session_state.kullanilabilir_mikro_gubreler = {
-        gubre: st.session_state.kullanilabilir_mikro_gubreler.get(gubre, False)
-        for gubre in mevcut_mikro_gubreler
-    }
-
-# Başlangıçta örnek bir gübre seçili olsun (kullanıcı deneyimini kolaylaştırmak için)
-if all(not secildi for secildi in st.session_state.kullanilabilir_gubreler.values()):
-    # Hiç gübre seçili değilse, varsayılan olarak Kalsiyum Nitrat ve Monopotasyum Fosfat seçili olsun
-    if "Kalsiyum Nitrat" in st.session_state.kullanilabilir_gubreler:
-        st.session_state.kullanilabilir_gubreler["Kalsiyum Nitrat"] = True
-    if "Monopotasyum Fosfat" in st.session_state.kullanilabilir_gubreler:
-        st.session_state.kullanilabilir_gubreler["Monopotasyum Fosfat"] = True
 
 if 'secilen_mikro_gubreler' not in st.session_state:
     st.session_state.secilen_mikro_gubreler = {
@@ -129,19 +106,13 @@ if 'hesaplama_log' not in st.session_state:
 
 # İyonik denge hesaplama
 def hesapla_iyonik_denge(recete):
-    anyon_toplam = sum(recete[ion] * abs(iyon_degerlikleri[ion]) for ion in ["NO3", "H2PO4", "SO4"])
-    katyon_toplam = sum(recete[ion] * abs(iyon_degerlikleri[ion]) for ion in ["NH4", "K", "Ca", "Mg"])
+    anyon_toplam = sum(float(recete[ion]) * abs(iyon_degerlikleri[ion]) for ion in ["NO3", "H2PO4", "SO4"])
+    katyon_toplam = sum(float(recete[ion]) * abs(iyon_degerlikleri[ion]) for ion in ["NH4", "K", "Ca", "Mg"])
     return anyon_toplam, katyon_toplam
 
 # Simulasyon ile besinlerin karşılanıp karşılanamayacağını kontrol etme
 def karsilanabilirlik_kontrolu(recete, secilen_gubreler):
-    net_ihtiyac = {ion: max(0, recete[ion]) for ion in ["NO3", "H2PO4", "SO4", "NH4", "K", "Ca", "Mg"]}
-
-    if "Kalsiyum Amonyum Nitrat" in secilen_gubreler and net_ihtiyac["Ca"] > 0:
-        can_miktar = net_ihtiyac["Ca"] / 5
-        net_ihtiyac["Ca"] = 0
-        net_ihtiyac["NO3"] -= 11 * can_miktar
-        net_ihtiyac["NH4"] -= can_miktar
+    net_ihtiyac = {ion: max(0, float(recete[ion])) for ion in ["NO3", "H2PO4", "SO4", "NH4", "K", "Ca", "Mg"]}
 
     if "Kalsiyum Nitrat" in secilen_gubreler and net_ihtiyac["Ca"] > 0:
         net_ihtiyac["NO3"] -= 2 * net_ihtiyac["Ca"]
@@ -297,38 +268,21 @@ with tabs[2]:
         a_tank_gubreler = [gubre for gubre, bilgi in gubreler.items() if bilgi["tank"] == "A"]
         b_tank_gubreler = [gubre for gubre, bilgi in gubreler.items() if bilgi["tank"] == "B"]
 
-        # Gübre seçimi arayüzünü iyileştirme
-        st.markdown("**A Tankı Gübreleri (en az biri seçilmeli)**")
+        st.markdown("**A Tankı Gübreleri**")
         for gubre in a_tank_gubreler:
-            secildi = st.checkbox(
+            st.session_state.kullanilabilir_gubreler[gubre] = st.checkbox(
                 f"☐ {gubre} ({gubreler[gubre]['formul']})",
                 value=st.session_state.kullanilabilir_gubreler.get(gubre, False),
                 key=f"checkbox_{gubre}"
             )
-            st.session_state.kullanilabilir_gubreler[gubre] = secildi
 
-        st.markdown("**B Tankı Gübreleri (en az biri seçilmeli)**")
+        st.markdown("**B Tankı Gübreleri**")
         for gubre in b_tank_gubreler:
-            secildi = st.checkbox(
+            st.session_state.kullanilabilir_gubreler[gubre] = st.checkbox(
                 f"☐ {gubre} ({gubreler[gubre]['formul']})",
                 value=st.session_state.kullanilabilir_gubreler.get(gubre, False),
                 key=f"checkbox_b_{gubre}"
             )
-            st.session_state.kullanilabilir_gubreler[gubre] = secildi
-        
-        # Tüm gübreleri seçme/kaldırma butonları
-        col_buttons = st.columns(2)
-        with col_buttons[0]:
-            if st.button("Tüm Gübreleri Seç", key="select_all"):
-                for gubre in gubreler:
-                    st.session_state.kullanilabilir_gubreler[gubre] = True
-                st.rerun()
-                
-        with col_buttons[1]:
-            if st.button("Tüm Seçimleri Kaldır", key="clear_all"):
-                for gubre in gubreler:
-                    st.session_state.kullanilabilir_gubreler[gubre] = False
-                st.rerun()
 
     with col2:
         st.subheader("Mikro Gübreler")
@@ -336,53 +290,47 @@ with tabs[2]:
         for gubre, bilgi in mikro_gubreler.items():
             mikro_element_gruplari.setdefault(bilgi["element"], []).append(gubre)
 
-        for element, gubreler_listesi in mikro_element_gruplari.items():
+        for element, gubreler in mikro_element_gruplari.items():
             st.markdown(f"**{element} Kaynağı**")
             secilen_gubre = st.radio(
                 f"{element} için gübre seçimi",
-                options=["Seçilmedi"] + gubreler_listesi,
-                index=0 if st.session_state.secilen_mikro_gubreler[element] not in gubreler_listesi else gubreler_listesi.index(st.session_state.secilen_mikro_gubreler[element]) + 1,
+                options=["Seçilmedi"] + gubreler,
+                index=0 if st.session_state.secilen_mikro_gubreler[element] not in gubreler else gubreler.index(st.session_state.secilen_mikro_gubreler[element]) + 1,
                 key=f"radio_{element}"
             )
             st.session_state.secilen_mikro_gubreler[element] = None if secilen_gubre == "Seçilmedi" else secilen_gubre
-            for gubre in gubreler_listesi:
+            for gubre in gubreler:
                 st.session_state.kullanilabilir_mikro_gubreler[gubre] = (gubre == secilen_gubre)
 
     # Seçilen gübreleri al
-    secilen_gubreler = [
-        gubre for gubre, secildi in st.session_state.kullanilabilir_gubreler.items()
-        if secildi and gubre in gubreler
-    ]
-    secilen_mikro_gubreler = [
-        gubre for element, gubre in st.session_state.secilen_mikro_gubreler.items()
-        if gubre and gubre in mikro_gubreler
-    ]
+    secilen_gubreler = [gubre for gubre, secildi in st.session_state.kullanilabilir_gubreler.items() if secildi]
+    secilen_mikro_gubreler = [gubre for element, gubre in st.session_state.secilen_mikro_gubreler.items() if gubre]
 
     st.subheader("Seçilen Gübreler")
     if secilen_gubreler:
         st.write("**Makro Gübreler:**")
         for gubre in secilen_gubreler:
-            try:
+            if gubre in gubreler:
                 st.write(f"✓ {gubre} ({gubreler[gubre]['formul']})")
-            except (KeyError, TypeError):
-                st.warning(f"Uyarı: '{gubre}' gübresi geçersiz veya tanımlı değil!")
+            else:
+                st.warning(f"Uyarı: '{gubre}' gübresi tanımlı değil!")
     else:
         st.warning("Henüz makro gübre seçmediniz!")
 
     if secilen_mikro_gubreler:
         st.write("**Mikro Gübreler:**")
         for gubre in secilen_mikro_gubreler:
-            try:
+            if gubre in mikro_gubreler:
                 st.write(f"✓ {gubre} ({mikro_gubreler[gubre]['formul']})")
-            except (KeyError, TypeError):
-                st.warning(f"Uyarı: '{gubre}' mikro gübresi geçersiz veya tanımlı değil!")
+            else:
+                st.warning(f"Uyarı: '{gubre}' mikro gübresi tanımlı değil!")
     else:
         st.warning("Henüz mikro gübre seçmediniz!")
 
-    # Hata ayıklama: Seçilen gübreleri göster
-    with st.expander("Hata Ayıklama: Seçilen Gübreler"):
+    # Hata ayıklama
+    with st.expander("Hata Ayıklama: Gübre Durumu"):
         st.write(f"**Seçilen Makro Gübreler:** {secilen_gubreler}")
-        st.write(f"**Kullanilabilir Gübreler Durumu:** {st.session_state.kullanilabilir_gubreler}")
+        st.write(f"**Tüm Kullanılabilir Gübreler Durumu:** {st.session_state.kullanilabilir_gubreler}")
 
     if secilen_gubreler:
         eksik_besinler = karsilanabilirlik_kontrolu(st.session_state.recete, secilen_gubreler)
@@ -399,12 +347,246 @@ with tabs[2]:
 with tabs[3]:
     st.header("Gübre Hesaplama")
     if st.button("Gübre Hesapla", type="primary"):
-        # Seçilen gübreleri tekrar kontrol et
-        secilen_gubreler = [
-            gubre for gubre, secildi in st.session_state.kullanilabilir_gubreler.items()
-            if secildi and gubre in gubreler
-        ]
-        secilen_mikro_gubreler = [
-            gubre for element, gubre in st.session_state.secilen_mikro_gubreler.items()
-            if gubre and gubre in mikro_gubreler
-        ]
+        # Seçilen gübreleri al
+        secilen_gubreler = [gubre for gubre, secildi in st.session_state.kullanilabilir_gubreler.items() if secildi]
+        secilen_mikro_gubreler = [gubre for element, gubre in st.session_state.secilen_mikro_gubreler.items() if gubre]
+
+        # Hata ayıklama logu
+        st.session_state.hesaplama_log = []
+        st.session_state.hesaplama_log.append({
+            "adım": "Başlangıç", "açıklama": f"Seçilen makro gübreler: {secilen_gubreler}", "ihtiyac": {}
+        })
+
+        if not secilen_gubreler:
+            st.error("Lütfen 'Gübre Seçimi' sekmesinden en az bir makro gübre seçin!")
+            st.warning(f"Hata Ayıklama: Seçilen gübreler boş. Tüm gübre durumu: {st.session_state.kullanilabilir_gubreler}")
+        else:
+            net_ihtiyac = {
+                ion: max(0, float(st.session_state.recete[ion]) - float(st.session_state.kuyu_suyu[ion]))
+                for ion in ["NO3", "H2PO4", "SO4", "NH4", "K", "Ca", "Mg"]
+            }
+            a_tank_gubreler = {}
+            b_tank_gubreler = {}
+            adim = 1
+
+            st.session_state.hesaplama_log.append({
+                "adım": "Kuyu Suyu Sonrası", "açıklama": "Kuyu suyu sonrası ihtiyaçlar",
+                "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
+            })
+
+            # 1. Kalsiyum Nitrat
+            if "Kalsiyum Nitrat" in secilen_gubreler and net_ihtiyac["Ca"] > 0:
+                ca_miktar = net_ihtiyac["Ca"]
+                a_tank_gubreler["Kalsiyum Nitrat"] = ca_miktar
+                net_ihtiyac["Ca"] = 0
+                net_ihtiyac["NO3"] -= 2 * ca_miktar
+                st.session_state.hesaplama_log.append({
+                    "adım": f"Adım {adim}", "açıklama": f"Kalsiyum Nitrat: {ca_miktar:.2f} mmol/L",
+                    "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
+                })
+                adim += 1
+
+            # 2. Magnezyum Nitrat
+            if "Magnezyum Nitrat" in secilen_gubreler and net_ihtiyac["Mg"] > 0:
+                mg_miktar = net_ihtiyac["Mg"]
+                a_tank_gubreler["Magnezyum Nitrat"] = mg_miktar
+                net_ihtiyac["Mg"] = 0
+                net_ihtiyac["NO3"] -= 2 * mg_miktar
+                st.session_state.hesaplama_log.append({
+                    "adım": f"Adım {adim}", "açıklama": f"Magnezyum Nitrat: {mg_miktar:.2f} mmol/L",
+                    "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
+                })
+                adim += 1
+
+            # 3. Magnezyum Sülfat
+            if "Magnezyum Sülfat" in secilen_gubreler and net_ihtiyac["Mg"] > 0:
+                mg_miktar = net_ihtiyac["Mg"]
+                b_tank_gubreler["Magnezyum Sülfat"] = mg_miktar
+                net_ihtiyac["Mg"] = 0
+                net_ihtiyac["SO4"] -= mg_miktar
+                st.session_state.hesaplama_log.append({
+                    "adım": f"Adım {adim}", "açıklama": f"Magnezyum Sülfat: {mg_miktar:.2f} mmol/L",
+                    "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
+                })
+                adim += 1
+
+            # 4. Monopotasyum Fosfat
+            if "Monopotasyum Fosfat" in secilen_gubreler and net_ihtiyac["H2PO4"] > 0:
+                mkp_miktar = net_ihtiyac["H2PO4"]
+                b_tank_gubreler["Monopotasyum Fosfat"] = mkp_miktar
+                net_ihtiyac["H2PO4"] = 0
+                net_ihtiyac["K"] -= mkp_miktar
+                st.session_state.hesaplama_log.append({
+                    "adım": f"Adım {adim}", "açıklama": f"Monopotasyum Fosfat: {mkp_miktar:.2f} mmol/L",
+                    "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
+                })
+                adim += 1
+
+            # 5. Monoamonyum Fosfat
+            if "Monoamonyum Fosfat" in secilen_gubreler and net_ihtiyac["H2PO4"] > 0:
+                map_miktar = net_ihtiyac["H2PO4"]
+                b_tank_gubreler["Monoamonyum Fosfat"] = map_miktar
+                net_ihtiyac["H2PO4"] = 0
+                net_ihtiyac["NH4"] -= map_miktar
+                st.session_state.hesaplama_log.append({
+                    "adım": f"Adım {adim}", "açıklama": f"Monoamonyum Fosfat: {map_miktar:.2f} mmol/L",
+                    "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
+                })
+                adim += 1
+
+            # 6. Amonyum Sülfat
+            if "Amonyum Sülfat" in secilen_gubreler and net_ihtiyac["NH4"] > 0:
+                as_miktar = net_ihtiyac["NH4"] / 2
+                b_tank_gubreler["Amonyum Sülfat"] = as_miktar
+                net_ihtiyac["NH4"] = 0
+                net_ihtiyac["SO4"] -= as_miktar
+                st.session_state.hesaplama_log.append({
+                    "adım": f"Adım {adim}", "açıklama": f"Amonyum Sülfat: {as_miktar:.2f} mmol/L",
+                    "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
+                })
+                adim += 1
+
+            # 7. Potasyum Nitrat
+            if "Potasyum Nitrat" in secilen_gubreler and net_ihtiyac["K"] > 0 and net_ihtiyac["NO3"] > 0:
+                kn_miktar = min(net_ihtiyac["K"], net_ihtiyac["NO3"])
+                a_tank_gubreler["Potasyum Nitrat"] = kn_miktar
+                net_ihtiyac["K"] -= kn_miktar
+                net_ihtiyac["NO3"] -= kn_miktar
+                st.session_state.hesaplama_log.append({
+                    "adım": f"Adım {adim}", "açıklama": f"Potasyum Nitrat: {kn_miktar:.2f} mmol/L",
+                    "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
+                })
+                adim += 1
+
+            # 8. Potasyum Sülfat
+            if "Potasyum Sülfat" in secilen_gubreler and net_ihtiyac["K"] > 0:
+                ks_miktar = net_ihtiyac["K"] / 2
+                b_tank_gubreler["Potasyum Sülfat"] = ks_miktar
+                net_ihtiyac["K"] = 0
+                net_ihtiyac["SO4"] -= ks_miktar
+                st.session_state.hesaplama_log.append({
+                    "adım": f"Adım {adim}", "açıklama": f"Potasyum Sülfat: {ks_miktar:.2f} mmol/L",
+                    "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
+                })
+                adim += 1
+
+            # Negatif ihtiyaçları sıfırla
+            negatif_ihtiyaclar = {iyon: miktar for iyon, miktar in net_ihtiyac.items() if miktar < -0.1}
+            for iyon in net_ihtiyac:
+                if net_ihtiyac[iyon] < 0:
+                    net_ihtiyac[iyon] = 0
+
+            # Mikro besin hesaplamaları
+            mikro_sonuc = []
+            for element, label in [("Fe", "Demir"), ("B", "Bor"), ("Mn", "Mangan"), ("Zn", "Çinko"), ("Cu", "Bakır"), ("Mo", "Molibden")]:
+                secilen_gubre = st.session_state.secilen_mikro_gubreler[element]
+                if secilen_gubre and element in st.session_state.recete and float(st.session_state.recete[element]) > 0:
+                    try:
+                        mikromol = float(st.session_state.recete[element])
+                        gubre_bilgi = mikro_gubreler[secilen_gubre]
+                        mmol = mikromol / 1000
+                        element_mol_agirligi = element_atomik_kutle[element] * (100 / gubre_bilgi["yuzde"])
+                        mg_l = mmol * element_mol_agirligi
+                        g_tank = (mg_l * float(st.session_state.konsantrasyon) * float(st.session_state.b_tank)) / 1000
+                        mikro_sonuc.append([secilen_gubre, gubre_bilgi["formul"], mikromol, mg_l, g_tank])
+                    except (TypeError, ValueError) as e:
+                        st.error(f"Mikro besin '{element}' hesaplanırken hata: {str(e)}")
+
+            # Kütle hesaplamaları
+            a_tank_sonuc = []
+            a_tank_toplam = 0
+            for gubre, mmol in a_tank_gubreler.items():
+                try:
+                    formul = gubreler[gubre]["formul"]
+                    mg_l = float(mmol) * float(gubreler[gubre]["agirlik"])
+                    g_tank = (mg_l * float(st.session_state.konsantrasyon) * float(st.session_state.a_tank)) / 1000
+                    kg_tank = g_tank / 1000
+                    a_tank_toplam += g_tank
+                    a_tank_sonuc.append([gubre, formul, mmol, mg_l, kg_tank])
+                except (TypeError, ValueError) as e:
+                    st.error(f"A Tankı gübresi '{gubre}' hesaplanırken hata: {str(e)}")
+
+            b_tank_sonuc = []
+            b_tank_toplam = 0
+            for gubre, mmol in b_tank_gubreler.items():
+                try:
+                    formul = gubreler[gubre]["formul"]
+                    mg_l = float(mmol) * float(gubreler[gubre]["agirlik"])
+                    g_tank = (mg_l * float(st.session_state.konsantrasyon) * float(st.session_state.b_tank)) / 1000
+                    kg_tank = g_tank / 1000
+                    b_tank_toplam += g_tank
+                    b_tank_sonuc.append([gubre, formul, mmol, mg_l, kg_tank])
+                except (TypeError, ValueError) as e:
+                    st.error(f"B Tankı gübresi '{gubre}' hesaplanırken hata: {str(e)}")
+
+            # Sonuçları göster
+            col_sonuc1, col_sonuc2 = st.columns(2)
+            with col_sonuc1:
+                st.subheader("A Tankı (Kalsiyum içeren)")
+                if a_tank_sonuc:
+                    a_tank_df = pd.DataFrame(a_tank_sonuc, columns=["Gübre Adı", "Formül", "mmol/L", "mg/L", "kg/Tank"])
+                    st.dataframe(a_tank_df.style.format({"mmol/L": "{:.2f}", "mg/L": "{:.2f}", "kg/Tank": "{:.3f}"}))
+                    st.write(f"**Toplam A Tankı gübresi:** {a_tank_toplam/1000:.3f} kg")
+                else:
+                    st.info("A Tankı için gübre eklenmedi.")
+
+            with col_sonuc2:
+                st.subheader("B Tankı (Fosfat, Sülfat ve Amonyum)")
+                if b_tank_sonuc:
+                    b_tank_df = pd.DataFrame(b_tank_sonuc, columns=["Gübre Adı", "Formül", "mmol/L", "mg/L", "kg/Tank"])
+                    st.dataframe(b_tank_df.style.format({"mmol/L": "{:.2f}", "mg/L": "{:.2f}", "kg/Tank": "{:.3f}"}))
+                    st.write(f"**Toplam B Tankı gübresi:** {b_tank_toplam/1000:.3f} kg")
+                else:
+                    st.info("B Tankı için gübre eklenmedi.")
+
+            # Mikro besinler
+            st.subheader("Mikro Besin Elementleri")
+            if mikro_sonuc:
+                mikro_df = pd.DataFrame(mikro_sonuc, columns=["Gübre Adı", "Formül", "mikromol/L", "mg/L", "gram/Tank"])
+                st.dataframe(mikro_df.style.format({"mikromol/L": "{:.2f}", "mg/L": "{:.4f}", "gram/Tank": "{:.2f}"}))
+                mikro_toplam = sum(sonuc[4] for sonuc in mikro_sonuc)
+                st.write(f"**Toplam mikro besin gübresi:** {mikro_toplam:.2f} gram")
+            else:
+                st.info("Mikro besin elementi eklenmedi.")
+
+            # Kuyu suyu uyarısı
+            if any(st.session_state.kuyu_suyu.values()):
+                st.success("✅ Kuyu suyu analiziniz hesaplamada dikkate alındı.")
+
+            # Negatif ihtiyaç uyarısı
+            if negatif_ihtiyaclar:
+                st.warning("⚠️ Aşağıdaki besinler reçete ihtiyacından fazla eklendi:")
+                for iyon, miktar in negatif_ihtiyaclar.items():
+                    st.markdown(f"- {iyon}: {-miktar:.2f} mmol/L fazla")
+                st.markdown("Bu, bitki sağlığını etkileyebilir veya EC değerini yükseltebilir.")
+
+            # Eksik besin kontrolü
+            eksik_var = False
+            uyari = ""
+            for iyon, miktar in net_ihtiyac.items():
+                if miktar > 0.1:
+                    eksik_var = True
+                    uyari += f" {iyon}: {miktar:.2f} mmol/L,"
+
+            if eksik_var:
+                st.warning(f"⚠️ Seçilen gübrelerle karşılanamayan besinler:{uyari[:-1]}")
+                st.markdown("**Önerilen Gübreler:**")
+                for iyon, miktar in net_ihtiyac.items():
+                    if miktar > 0.1:
+                        oneriler = [f"☐ {gubre} ({bilgi['formul']})" for gubre, bilgi in gubreler.items() if iyon in bilgi["iyonlar"] and gubre not in secilen_gubreler]
+                        st.markdown(f"- {iyon} için: {', '.join(oneriler) if oneriler else 'Reçeteyi gözden geçirin.'}")
+            else:
+                st.success("✅ Tüm besinler seçilen gübrelerle karşılandı.")
+
+            # Hesaplama adımları
+            with st.expander("Hesaplama Adımları"):
+                for log in st.session_state.hesaplama_log:
+                    st.write(f"**{log['adım']}:** {log['açıklama']}")
+                    if log["ihtiyac"]:
+                        ihtiyac_df = pd.DataFrame([[k, v] for k, v in log["ihtiyac"].items()], columns=["İyon", "İhtiyaç (mmol/L)"])
+                        st.dataframe(ihtiyac_df.style.format({"İhtiyaç (mmol/L)": "{:.2f}"}))
+                    st.markdown("---")
+
+# Alt bilgi
+st.markdown("---")
+st.markdown("HydroBuddy Türkçe | Hidroponik besin çözeltisi hesaplama aracı")
