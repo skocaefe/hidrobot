@@ -261,7 +261,7 @@ with tabs[0]:
        
         # ⬇️ YENİ EKLENECEK: Otomatik İyonik Denge Butonu
         if st.button("🔧 İyonik Dengeyi Otomatik Düzelt"):
-         st.session_state.recete, mesaj = otomatik_iyon_duzelt(st.session_state.recete)
+        st.session_state.recete, mesaj = otomatik_iyon_duzelt(st.session_state.recete)
         st.success(f"✅ {mesaj}")
         with col_denge1:
             anyon_df = pd.DataFrame(
