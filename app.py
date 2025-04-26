@@ -545,6 +545,54 @@ def main():
                 )
                 st.session_state.secilen_mikro_gubreler[element] = None if secim == "Seçilmedi" else secim
         
-        # Seçilen gübreleri göster
+               # Seçilen gübreleri göster
         secilen_gubreler = [g for g, secildi in st.session_state.kullanilabilir_gubreler.items() if secildi]
-        secilen_mikro_gubreler = [g for g, secildi in st.session
+        secilen_mikro_gubreler = [g for g in st.session_state.secilen_mikro_gubreler.values() if g is not None]
+        
+        st.subheader("Seçilen Gübreler")
+        if secilen_gubreler:
+            st.write("**Makro Gübreler:**")
+            for gubre in secilen_gubreler:
+                st.write(f"- {gubre} ({gubreler[gubre]['formul']})")
+        else:
+            st.warning("Henüz makro gübre seçmediniz!")
+        
+        if secilen_mikro_gubreler:
+            st.write("**Mikro Gübreler:**")
+            for gubre in secilen_mikro_gubreler:
+                st.write(f"- {gubre} ({mikro_gubreler[gubre]['formul']})")
+        else:
+            st.warning("Henüz mikro gübre seçmediniz!")
+        
+        # Karşılanabilirlik kontrolü
+        if secilen_gubreler:
+            eksik_besinler = karsilanabilirlik_kontrolu(st.session_state.recete, secilen_gubreler)
+            if eksik_besinler:
+                st.error(f"Seçilen gübrelerle karşılanamayan besinler: {', '.join(eksik_besinler)}")
+                st.markdown("**Önerilen Gübreler:**")
+                for besin in eksik_besinler:
+                    oneriler = [f"{g} ({gubreler[g]['formul']})" 
+                               for g, b in gubreler.items() 
+                               if besin in b["iyonlar"] and g not in secilen_gubreler]
+                    if oneriler:
+                        st.write(f"- {besin} için: {', '.join(oneriler)}")
+                    else:
+                        st.write(f"- {besin} için: Uygun gübre bulunamadı, reçeteyi gözden geçirin")
+            else:
+                st.success("Tüm besinler seçilen gübrelerle karşılanabilir.")
+
+    # Gübre Hesaplama Sekmesi
+    with tabs[3]:
+        st.header("Gübre Hesaplama")
+        if st.button("Gübre Hesapla", type="primary"):
+            st.session_state.hesaplama_sonucu = gubre_hesapla()
+            
+            if st.session_state.hesaplama_sonucu:
+                goster_hesaplama_sonucu(st.session_state.hesaplama_sonucu)
+
+    # Alt bilgi
+    st.markdown("---")
+    st.markdown("HydroBuddy Türkçe | Hidroponik besin çözeltisi hesaplama aracı")
+
+if __name__ == "__main__":
+    main()
