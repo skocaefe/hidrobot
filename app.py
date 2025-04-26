@@ -1,24 +1,3 @@
-
-# Hidrobot - app.py
-
-import streamlit as st
-import pandas as pd
-import numpy as np
-
-# --- Başlangıç Ayarları ---
-st.set_page_config(page_title="Hidrobot", page_icon="🤖", layout="wide")
-st.title("🤖 Hidrobot - Hidroponik Besin Çözeltisi Hesaplayıcı")
-st.markdown("""
-Hidroponik sistemler için tam reçete oluşturur, EC ve pH tahmini yapar.  
-Eksik/fazla iyonları analiz eder, gerekirse gübre tavsiyesi sunar.  
-Çözelti hazırlama adımlarını anlatır.  
-**Su sıcaklığı 20°C kabul edilir. Önce su, sonra gübre eklenir.**
-""")
-
-# (Buraya kadar olan koddan sonra diğer büyük kod parçalarını devam ettireceğim)
-# (Çok uzun olduğu için bölüp yükleyeceğim dosyaya)
-
-# Not: Bu placeholder. Asıl tam kod aşağıda txt dosyasına hazırlanıp yazılacak.
 # --- Reçete Girişi ---
 st.header("🧪 Reçete Girişi")
 
