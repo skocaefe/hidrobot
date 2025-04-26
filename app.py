@@ -74,13 +74,23 @@ if 'b_tank' not in st.session_state:
 if 'konsantrasyon' not in st.session_state:
     st.session_state.konsantrasyon = 100
 
-# Kullanılabilir gübreler için session state
+# Kullanılabilir gübreler için session state - gübre listesine göre dinamik olarak oluştur
 if 'kullanilabilir_gubreler' not in st.session_state:
     st.session_state.kullanilabilir_gubreler = {gubre: False for gubre in gubreler.keys()}
+else:
+    # Yeni eklenen gübreleri kontrol et ve gerekirse session state'e ekle
+    for gubre in gubreler.keys():
+        if gubre not in st.session_state.kullanilabilir_gubreler:
+            st.session_state.kullanilabilir_gubreler[gubre] = False
 
-# Kullanılabilir mikro gübreler için session state
+# Kullanılabilir mikro gübreler için session state - dinamik olarak oluştur
 if 'kullanilabilir_mikro_gubreler' not in st.session_state:
     st.session_state.kullanilabilir_mikro_gubreler = {gubre: False for gubre in mikro_gubreler.keys()}
+else:
+    # Yeni eklenen mikro gübreleri kontrol et ve gerekirse session state'e ekle
+    for gubre in mikro_gubreler.keys():
+        if gubre not in st.session_state.kullanilabilir_mikro_gubreler:
+            st.session_state.kullanilabilir_mikro_gubreler[gubre] = False
 
 # İyonik denge hesaplama
 def hesapla_iyonik_denge(recete):
