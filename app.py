@@ -149,6 +149,23 @@ def hesapla_iyonik_denge(recete):
     anyon_toplam = sum(float(recete[ion]) * abs(iyon_degerlikleri[ion]) for ion in ["NO3", "H2PO4", "SO4"])
     katyon_toplam = sum(float(recete[ion]) * abs(iyon_degerlikleri[ion]) for ion in ["NH4", "K", "Ca", "Mg"])
     return anyon_toplam, katyon_toplam
+   
+# ⬇️ YENİ EKLENECEK: İyonik dengeyi otomatik düzeltme fonksiyonu
+def otomatik_iyon_duzelt(recete, hedef_fark=0.5):
+    anyon_toplam, katyon_toplam = hesapla_iyonik_denge(recete)
+    fark = anyon_toplam - katyon_toplam
+    
+    if abs(fark) <= hedef_fark:
+        return recete, "Zaten dengede."
+    
+    if fark > 0:  # Aniyon fazlası var
+        recete["K"] += fark
+        duzeltme = f"K (potasyum) artırıldı: +{fark:.2f} mmol/L"
+    else:  # Katyon fazlası var
+        recete["NO3"] += abs(fark)
+        duzeltme = f"NO3 (nitrat) artırıldı: +{abs(fark):.2f} mmol/L"
+    
+    return recete, duzeltme
 
 # Simulasyon ile besinlerin karşılanıp karşılanamayacağını kontrol etme
 def karsilanabilirlik_kontrolu(recete, secilen_gubreler):
@@ -241,6 +258,11 @@ with tabs[0]:
         st.subheader("İyonik Denge")
         anyon_toplam, katyon_toplam = hesapla_iyonik_denge(st.session_state.recete)
         col_denge1, col_denge2 = st.columns(2)
+       
+# ⬇️ YENİ EKLENECEK: Otomatik İyonik Denge Butonu
+if st.button("🔧 İyonik Dengeyi Otomatik Düzelt"):
+    st.session_state.recete, mesaj = otomatik_iyon_duzelt(st.session_state.recete)
+    st.success(f"✅ {mesaj}")
         with col_denge1:
             anyon_df = pd.DataFrame(
                 [[ion, st.session_state.recete[ion], st.session_state.recete[ion] * abs(iyon_degerlikleri[ion])] for ion in ["NO3", "H2PO4", "SO4"]],
@@ -666,4 +688,4 @@ with tabs[3]:
 
 # Alt bilgi
 st.markdown("---")
-st.markdown("HydroBuddy Türkçe | Hidroponik besin çözeltisi hesaplama aracı")
+st.markdown("Hidrobot Türkçe | Hidroponik besin çözeltisi hesaplama aracı")
