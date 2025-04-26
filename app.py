@@ -1,29 +1,29 @@
 
-# Hidrobot - app.py (Tam Çalışır)
+# Hidrobot V3 - app.py (Çalışır sürüm)
 
 import streamlit as st
 import pandas as pd
 import numpy as np
 
 # --- Sayfa Ayarları ---
-st.set_page_config(page_title="Hidrobot", page_icon="🤖", layout="wide")
-st.title("🤖 Hidrobot - Hidroponik Besin Çözeltisi Hesaplayıcı")
+st.set_page_config(page_title="Hidrobot V3", page_icon="🤖", layout="wide")
+st.title("🤖 Hidrobot V3 - Hidroponik Besin Çözeltisi Hesaplayıcı")
 st.markdown("""
-Hidroponik sistemler için tam reçete oluşturur, EC ve pH tahmini yapar.  
-Eksik/fazla iyonları analiz eder, gerekirse gübre tavsiyesi sunar.  
-Çözelti hazırlama adımlarını anlatır.  
+Bu uygulama:
+- Reçete oluşturur
+- Gübre seçimi yapar
+- Anyon/Katyon dengesini kontrol eder
+- EC tahmini yapar
+- Çözeltinin nasıl hazırlanacağını adım adım anlatır
 **Su sıcaklığı 20°C kabul edilir. Önce su, sonra gübre eklenir.**
 """)
-
-# --- Sidebar Tank Ayarları ---
-with st.sidebar:
-    st.header("🔧 Tank Ayarları")
-    konsantrasyon_orani = st.number_input("Konsantrasyon Oranı (kat)", min_value=10, max_value=500, value=100, step=10)
-    tank_hacmi = st.number_input("Tank Hacmi (litre)", min_value=10, max_value=1000, value=100, step=10)
 
 # --- Tanımlar ---
 makro_iyonlar = ["NO3", "H2PO4", "SO4", "NH4", "K", "Ca", "Mg"]
 mikro_elementler = ["Fe", "B", "Mn", "Zn", "Cu", "Mo"]
+
+iyon_degerlikleri = {"NO3": -1, "H2PO4": -1, "SO4": -2, "NH4": 1, "K": 1, "Ca": 2, "Mg": 2}
+element_atom_agirlik = {"Fe": 55.845, "B": 10.81, "Mn": 54.938, "Zn": 65.38, "Cu": 63.546, "Mo": 95.95}
 
 makro_gubreler = {
     "Kalsiyum Nitrat": {"formul": "Ca(NO3)2·4H2O", "iyonlar": {"Ca":1,"NO3":2}, "molar_agirlik":236.15, "tank":"A"},
@@ -36,51 +36,39 @@ makro_gubreler = {
     "Monoamonyum Fosfat": {"formul": "NH4H2PO4", "iyonlar": {"NH4":1,"H2PO4":1}, "molar_agirlik":115.03, "tank":"B"},
 }
 
-mikro_gubreler = {
-    "Demir EDDHA": {"element": "Fe", "yuzde":6},
-    "Demir EDTA": {"element": "Fe", "yuzde":13},
-    "Borik Asit": {"element": "B", "yuzde":17.5},
-    "Borak": {"element": "B", "yuzde":11},
-    "Mangan Sülfat": {"element": "Mn", "yuzde":32},
-    "Çinko Sülfat": {"element": "Zn", "yuzde":23},
-    "Bakır Sülfat": {"element": "Cu", "yuzde":25},
-    "Sodyum Molibdat": {"element": "Mo", "yuzde":40},
-}
+# --- Tank Ayarları ---
+with st.sidebar:
+    st.header("🔧 Tank Ayarları")
+    konsantrasyon = st.number_input("Konsantrasyon (kat)", min_value=10, max_value=500, value=100, step=10)
+    hacim = st.number_input("Tank Hacmi (litre)", min_value=10, max_value=2000, value=100, step=10)
 
 # --- Reçete Girişi ---
 st.header("🧪 Reçete Girişi")
-makro_input = {}
-mikro_input = {}
+makro = {}
+mikro = {}
 
-cols = st.columns(4)
-for i, ion in enumerate(makro_iyonlar):
-    with cols[i%4]:
-        makro_input[ion] = st.number_input(f"{ion} (mmol/L)", min_value=0.0, value=5.0, step=0.1)
+makro_cols = st.columns(4)
+for idx, ion in enumerate(makro_iyonlar):
+    with makro_cols[idx%4]:
+        makro[ion] = st.number_input(f"{ion} (mmol/L)", min_value=0.0, value=5.0, step=0.1)
 
-cols2 = st.columns(3)
-for i, element in enumerate(mikro_elementler):
-    with cols2[i%3]:
-        mikro_input[element] = st.number_input(f"{element} (µmol/L)", min_value=0.0, value=25.0, step=1.0)
+mikro_cols = st.columns(3)
+for idx, el in enumerate(mikro_elementler):
+    with mikro_cols[idx%3]:
+        mikro[el] = st.number_input(f"{el} (µmol/L)", min_value=0.0, value=25.0, step=1.0)
 
 # --- Gübre Seçimi ---
 st.header("🧪 Gübre Seçimi")
-secilen_makro = []
-for gubre in makro_gubreler.keys():
-    if st.checkbox(f"{gubre}", key=f"makro_{gubre}"):
-        secilen_makro.append(gubre)
-
-secilen_mikro = {}
-for element in mikro_elementler:
-    secenekler = [g for g, v in mikro_gubreler.items() if v["element"]==element]
-    secim = st.radio(f"{element} için:", ["Seçilmedi"]+secenekler, horizontal=True, key=f"micro_{element}")
-    if secim != "Seçilmedi":
-        secilen_mikro[element] = secim
+secilen_gubreler = []
+for gubre in makro_gubreler:
+    if st.checkbox(gubre):
+        secilen_gubreler.append(gubre)
 
 # --- Hesaplama ---
 if st.button("🚀 Hesapla"):
-    hedef = np.array([makro_input[i] for i in makro_iyonlar])
+    hedef = np.array([makro[ion] for ion in makro_iyonlar])
     A = []
-    for gubre in secilen_makro:
+    for gubre in secilen_gubreler:
         A.append([makro_gubreler[gubre]["iyonlar"].get(ion,0) for ion in makro_iyonlar])
     A = np.array(A).T
 
@@ -89,61 +77,50 @@ if st.button("🚀 Hesapla"):
         mevcut = A @ sonuc
         fark = mevcut - hedef
 
-        st.success("✅ Hesaplama Başarılı!")
+        st.success("✅ Hesaplama başarılı!")
 
-        # A Tankı ve B Tankı
+        # Tank ayırımı
         a_tank = []
         b_tank = []
-        for idx, gubre in enumerate(secilen_makro):
+        for idx, gubre in enumerate(secilen_gubreler):
             mmol = sonuc[idx]
             mg_l = mmol * makro_gubreler[gubre]["molar_agirlik"]
-            g_tank = mg_l * konsantrasyon_orani * tank_hacmi / 1000
-            if makro_gubreler[gubre]["tank"]=="A":
-                a_tank.append((gubre, g_tank/1000))
+            toplam_g = mg_l * konsantrasyon * hacim / 1000
+            if makro_gubreler[gubre]["tank"] == "A":
+                a_tank.append((gubre, toplam_g/1000))
             else:
-                b_tank.append((gubre, g_tank/1000))
+                b_tank.append((gubre, toplam_g/1000))
 
         st.subheader("📦 A Tankı")
-        st.dataframe(pd.DataFrame(a_tank, columns=["Gübre","Kg"]))
+        st.dataframe(pd.DataFrame(a_tank, columns=["Gübre", "Kg"]))
 
         st.subheader("📦 B Tankı")
-        st.dataframe(pd.DataFrame(b_tank, columns=["Gübre","Kg"]))
+        st.dataframe(pd.DataFrame(b_tank, columns=["Gübre", "Kg"]))
 
-        st.subheader("🌱 Mikro Besinler")
-        mikro_sonuc = []
-        for element, gubre in secilen_mikro.items():
-            hedef_umol = mikro_input[element]
-            yuzde = mikro_gubreler[gubre]["yuzde"]
-            mg_l = (hedef_umol/1000) * element_atom_agirlik[element]
-            toplam_mg = mg_l * konsantrasyon_orani * tank_hacmi
-            gram = toplam_mg * 100 / yuzde / 1000
-            mikro_sonuc.append((gubre, gram))
-        if mikro_sonuc:
-            st.dataframe(pd.DataFrame(mikro_sonuc, columns=["Mikro Gübre","Gram"]))
+        st.subheader("🔎 Anyon/Katyon Dengesi")
+        anyon_toplam = sum(makro[ion] * abs(iyon_degerlikleri[ion]) for ion in ["NO3","H2PO4","SO4"])
+        katyon_toplam = sum(makro[ion] * abs(iyon_degerlikleri[ion]) for ion in ["NH4","K","Ca","Mg"])
+        st.write(f"Anyon: {anyon_toplam:.2f} me/L | Katyon: {katyon_toplam:.2f} me/L")
 
-        toplam_mmol = sum(makro_input.values())
+        fark_denge = abs(anyon_toplam - katyon_toplam)
+        if fark_denge <= 0.5:
+            st.success("✅ İyonik denge uygun.")
+        else:
+            st.warning("⚠️ İyon dengesinde sapma var! EC yükselebilir.")
+
+        # EC tahmini
+        toplam_mmol = sum(makro.values())
         tahmini_ec = toplam_mmol * 0.64
         st.metric("Tahmini EC", f"{tahmini_ec:.2f} dS/m")
 
-        st.header("🔎 İyon Analizi")
-        analiz = []
-        for idx, ion in enumerate(makro_iyonlar):
-            if abs(fark[idx]) > 0.1:
-                analiz.append((ion, "Fazla" if fark[idx]>0 else "Eksik", round(fark[idx],2)))
-
-        if analiz:
-            st.dataframe(pd.DataFrame(analiz, columns=["İyon","Durum","Fark (mmol/L)"]))
-        else:
-            st.success("✅ İyon dengesi mükemmel!")
-
         with st.expander("🧴 Çözelti Nasıl Hazırlanır?"):
             st.markdown("""
-            1. Tankları %70 saf su ile doldurun.
-            2. Gübreleri sırayla ekleyin ve karıştırın.
-            3. Tam çözündükten sonra suyu tamamlayın.
+            1. Tankı %70 saf suyla doldurun.
+            2. Seçilen gübreleri sırayla ekleyin ve iyice çözünene kadar karıştırın.
+            3. Gerekirse su ekleyerek tankı tamamlayın.
             4. EC ve pH kontrolü yapın.
             5. Sisteme aktarın.
             """)
 
     except Exception as e:
-        st.error(f"Hesaplama hatası: {e}")
+        st.error(f"Hesaplama Hatası: {e}")
