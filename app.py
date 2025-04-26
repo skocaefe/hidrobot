@@ -3,10 +3,10 @@ import pandas as pd
 import numpy as np
 
 # Sayfa ayarları
-st.set_page_config(page_title="HydroBuddy Türkçe", page_icon="🌱", layout="wide")
+st.set_page_config(page_title="Hidrobot", page_icon="🤖", layout="wide")
 
 # Başlık ve açıklama
-st.title("🌱 HydroBuddy Türkçe")
+st.title("🤖 Hidrobot")
 st.markdown("Hidroponik besin çözeltisi hesaplama aracı")
 
 # İyon değerlikleri
