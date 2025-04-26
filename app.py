@@ -101,8 +101,12 @@ if 'kuyu_suyu' not in st.session_state:
 if 'kullanilabilir_gubreler' not in st.session_state:
     st.session_state.kullanilabilir_gubreler = {gubre: False for gubre in gubreler.keys()}
 
-if 'kullanilabilir_mikro_gubreler' not in st.session_state:
-    st.session_state.kullanilabilir_mikro_gubreler = {gubre: False for gubre in mikro_gubreler.keys()}
+if 'kullanilabilir_gubreler' not in st.session_state:
+    gubre_anahtarlari = list(gubreler.keys())
+   gubre_anahtarlari = list(gubreler.keys())
+st.session_state.kullanilabilir_gubreler = {}
+for gubre in gubre_anahtarlari:
+    st.session_state.kullanilabilir_gubreler[gubre] = False
 
 if 'secilen_mikro_gubreler' not in st.session_state:
     st.session_state.secilen_mikro_gubreler = {
