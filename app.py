@@ -72,6 +72,14 @@ if 'b_tank' not in st.session_state:
 if 'konsantrasyon' not in st.session_state:
     st.session_state.konsantrasyon = 100
 
+# Kullanılabilir gübreler için session state
+if 'kullanilabilir_gubreler' not in st.session_state:
+    st.session_state.kullanilabilir_gubreler = {gubre: False for gubre in gubreler.keys()}
+
+# Kullanılabilir mikro gübreler için session state
+if 'kullanilabilir_mikro_gubreler' not in st.session_state:
+    st.session_state.kullanilabilir_mikro_gubreler = {gubre: False for gubre in mikro_gubreler.keys()}
+
 # İyonik denge hesaplama
 def hesapla_iyonik_denge(recete):
     anyon_toplam = 0
@@ -91,7 +99,7 @@ def hesapla_iyonik_denge(recete):
     return anyon_toplam, katyon_toplam
 
 # Ana düzen
-tabs = st.tabs(["Reçete Oluşturma", "Gübre Hesaplama"])
+tabs = st.tabs(["Reçete Oluşturma", "Gübre Seçimi", "Gübre Hesaplama"])
 
 # Tab 1: Reçete Oluşturma
 with tabs[0]:
@@ -279,195 +287,180 @@ with tabs[0]:
         else:
             st.error(f"❌ İyonik denge bozuk! (Fark: {fark:.2f} me/L)")
 
-# Tab 2: Gübre Hesaplama
+# Tab 2: Gübre Seçimi
 with tabs[1]:
+    st.header("Elimdeki Gübreler")
+    st.info("Elinizde bulunan gübreleri seçiniz. Hesaplamalar sadece seçtiğiniz gübreler kullanılarak yapılacaktır.")
+    
+    col1, col2 = st.columns(2)
+    
+    # Makro gübreler seçimi
+    with col1:
+        st.subheader("Makro Gübreler")
+        
+        a_tank_gubreler = []
+        b_tank_gubreler = []
+        
+        for gubre, bilgi in gubreler.items():
+            if bilgi["tank"] == "A":
+                a_tank_gubreler.append(gubre)
+            else:
+                b_tank_gubreler.append(gubre)
+        
+        st.markdown("**A Tankı Gübreleri**")
+        for gubre in a_tank_gubreler:
+            st.session_state.kullanilabilir_gubreler[gubre] = st.checkbox(
+                f"{gubre} ({gubreler[gubre]['formul']})", 
+                value=st.session_state.kullanilabilir_gubreler[gubre],
+                key=f"checkbox_{gubre}"
+            )
+        
+        st.markdown("**B Tankı Gübreleri**")
+        for gubre in b_tank_gubreler:
+            st.session_state.kullanilabilir_gubreler[gubre] = st.checkbox(
+                f"{gubre} ({gubreler[gubre]['formul']})", 
+                value=st.session_state.kullanilabilir_gubreler[gubre],
+                key=f"checkbox_{gubre}"
+            )
+    
+    # Mikro gübreler seçimi
+    with col2:
+        st.subheader("Mikro Gübreler")
+        
+        for gubre, bilgi in mikro_gubreler.items():
+            st.session_state.kullanilabilir_mikro_gubreler[gubre] = st.checkbox(
+                f"{gubre} ({bilgi['formul']})", 
+                value=st.session_state.kullanilabilir_mikro_gubreler[gubre],
+                key=f"checkbox_mikro_{gubre}"
+            )
+    
+    # Gübre seçimini göster
+    secilen_gubreler = [gubre for gubre, secildi in st.session_state.kullanilabilir_gubreler.items() if secildi]
+    secilen_mikro_gubreler = [gubre for gubre, secildi in st.session_state.kullanilabilir_mikro_gubreler.items() if secildi]
+    
+    st.subheader("Seçilen Gübreler")
+    if secilen_gubreler:
+        st.write("**Makro Gübreler:**")
+        for gubre in secilen_gubreler:
+            st.write(f"- {gubre} ({gubreler[gubre]['formul']})")
+    else:
+        st.warning("Henüz makro gübre seçmediniz!")
+    
+    if secilen_mikro_gubreler:
+        st.write("**Mikro Gübreler:**")
+        for gubre in secilen_mikro_gubreler:
+            st.write(f"- {gubre} ({mikro_gubreler[gubre]['formul']})")
+    else:
+        st.warning("Henüz mikro gübre seçmediniz!")
+    
+    # Eksik gübre kontrolü
+    makro_besinler_min = {"NO3": False, "H2PO4": False, "SO4": False, "NH4": False, "K": False, "Ca": False, "Mg": False}
+    
+    # Eldeki gübrelerle hangi besinlerin sağlanabileceğini kontrol et
+    if "Kalsiyum Nitrat" in secilen_gubreler:
+        makro_besinler_min["NO3"] = True
+        makro_besinler_min["Ca"] = True
+    
+    if "Potasyum Nitrat" in secilen_gubreler:
+        makro_besinler_min["NO3"] = True
+        makro_besinler_min["K"] = True
+    
+    if "Monopotasyum Fosfat" in secilen_gubreler:
+        makro_besinler_min["H2PO4"] = True
+        makro_besinler_min["K"] = True
+    
+    if "Magnezyum Sülfat" in secilen_gubreler:
+        makro_besinler_min["Mg"] = True
+        makro_besinler_min["SO4"] = True
+    
+    if "Potasyum Sülfat" in secilen_gubreler:
+        makro_besinler_min["K"] = True
+        makro_besinler_min["SO4"] = True
+    
+    if "Amonyum Sülfat" in secilen_gubreler:
+        makro_besinler_min["NH4"] = True
+        makro_besinler_min["SO4"] = True
+    
+    if "Monoamonyum Fosfat" in secilen_gubreler:
+        makro_besinler_min["NH4"] = True
+        makro_besinler_min["H2PO4"] = True
+    
+    # Eksik besinleri göster
+    eksik_besinler = [besin for besin, var in makro_besinler_min.items() if not var]
+    
+    if eksik_besinler:
+        st.error("⚠️ Seçilen gübrelerle sağlanamayacak besinler: " + ", ".join(eksik_besinler))
+        st.markdown("Önerilen gübreler:")
+        for besin in eksik_besinler:
+            if besin == "NO3":
+                st.markdown("- NO3 (Nitrat) için: Kalsiyum Nitrat veya Potasyum Nitrat")
+            elif besin == "H2PO4":
+                st.markdown("- H2PO4 (Fosfat) için: Monopotasyum Fosfat veya Monoamonyum Fosfat")
+            elif besin == "SO4":
+                st.markdown("- SO4 (Sülfat) için: Magnezyum Sülfat, Potasyum Sülfat veya Amonyum Sülfat")
+            elif besin == "NH4":
+                st.markdown("- NH4 (Amonyum) için: Amonyum Sülfat veya Monoamonyum Fosfat")
+            elif besin == "K":
+                st.markdown("- K (Potasyum) için: Potasyum Nitrat, Monopotasyum Fosfat veya Potasyum Sülfat")
+            elif besin == "Ca":
+                st.markdown("- Ca (Kalsiyum) için: Kalsiyum Nitrat")
+            elif besin == "Mg":
+                st.markdown("- Mg (Magnezyum) için: Magnezyum Sülfat")
+    else:
+        st.success("✅ Seçilen gübrelerle tüm makro besinler sağlanabilir.")
+
+# Tab 3: Gübre Hesaplama
+with tabs[2]:
     st.header("Gübre Hesaplama")
     
     if st.button("Gübre Hesapla", type="primary"):
-        a_tank_gubreler = {}
-        b_tank_gubreler = {}
+        secilen_gubreler = [gubre for gubre, secildi in st.session_state.kullanilabilir_gubreler.items() if secildi]
+        secilen_mikro_gubreler = [gubre for gubre, secildi in st.session_state.kullanilabilir_mikro_gubreler.items() if secildi]
         
-        # 1. Monoamonyum Fosfat (NH4H2PO4) için
-        map_miktari = min(st.session_state.recete["NH4"], st.session_state.recete["H2PO4"])
-        if map_miktari > 0:
-            b_tank_gubreler["Monoamonyum Fosfat"] = map_miktari
-            kalan_nh4 = st.session_state.recete["NH4"] - map_miktari
-            kalan_h2po4 = st.session_state.recete["H2PO4"] - map_miktari
+        if not secilen_gubreler:
+            st.error("Lütfen önce 'Gübre Seçimi' sekmesinden en az bir makro gübre seçiniz!")
         else:
-            kalan_nh4 = st.session_state.recete["NH4"]
+            a_tank_gubreler = {}
+            b_tank_gubreler = {}
+            
+            # Mevcut olan gübrelere göre hesaplama stratejisi
+            # 1. Öncelikle temel besinleri hesapla
+            
+            # H2PO4 için
             kalan_h2po4 = st.session_state.recete["H2PO4"]
-        
-        # 2. Monopotasyum Fosfat (KH2PO4) için
-        if kalan_h2po4 > 0:
-            b_tank_gubreler["Monopotasyum Fosfat"] = kalan_h2po4
-            kalan_k = st.session_state.recete["K"] - kalan_h2po4
-        else:
+            kalan_nh4 = st.session_state.recete["NH4"]
             kalan_k = st.session_state.recete["K"]
-        
-        # 3. Kalsiyum Nitrat (Ca(NO3)2) için
-        if st.session_state.recete["Ca"] > 0:
-            a_tank_gubreler["Kalsiyum Nitrat"] = st.session_state.recete["Ca"]
-            kalan_no3 = st.session_state.recete["NO3"] - (2 * st.session_state.recete["Ca"])
-        else:
-            kalan_no3 = st.session_state.recete["NO3"]
-        
-        # 4. Magnezyum Sülfat (MgSO4) için
-        if st.session_state.recete["Mg"] > 0:
-            b_tank_gubreler["Magnezyum Sülfat"] = st.session_state.recete["Mg"]
-            kalan_so4 = st.session_state.recete["SO4"] - st.session_state.recete["Mg"]
-        else:
-            kalan_so4 = st.session_state.recete["SO4"]
-        
-        # 5. Amonyum Sülfat ((NH4)2SO4) için
-        if kalan_nh4 > 0 and kalan_so4 > 0:
-            as_miktari = min(kalan_nh4 / 2, kalan_so4)
-            if as_miktari > 0:
-                b_tank_gubreler["Amonyum Sülfat"] = as_miktari
-                kalan_nh4 -= (2 * as_miktari)
-                kalan_so4 -= as_miktari
-        
-        # 6. Potasyum Nitrat (KNO3) için
-        if kalan_no3 > 0 and kalan_k > 0:
-            kno3_miktari = min(kalan_no3, kalan_k)
-            if kno3_miktari > 0:
-                a_tank_gubreler["Potasyum Nitrat"] = kno3_miktari
-                kalan_no3 -= kno3_miktari
-                kalan_k -= kno3_miktari
-        
-        # 7. Potasyum Sülfat (K2SO4) için
-        if kalan_k > 0 and kalan_so4 > 0:
-            k2so4_miktari = min(kalan_k / 2, kalan_so4)
-            if k2so4_miktari > 0:
-                b_tank_gubreler["Potasyum Sülfat"] = k2so4_miktari
-                kalan_k -= (2 * k2so4_miktari)
-                kalan_so4 -= k2so4_miktari
-        
-        # Mikro elementler için gübre hesaplama
-        mikro_sonuc = []
-        
-        for element, gubre_adi in [
-            ("Fe", "Demir EDDHA"), 
-            ("B", "Borak"), 
-            ("Mn", "Mangan Sülfat"), 
-            ("Zn", "Çinko Sülfat"), 
-            ("Cu", "Bakır Sülfat"), 
-            ("Mo", "Sodyum Molibdat")
-        ]:
-            if element in st.session_state.recete and st.session_state.recete[element] > 0:
-                mikromol = st.session_state.recete[element]
-                bilgi = mikro_gubreler[gubre_adi]
-                mmol = mikromol / 1000  # mikromol -> mmol
-                
-                # Saf element için formül ağırlığını hesapla
-                element_mol_agirligi = bilgi["agirlik"] * (100 / bilgi["yuzde"])
-                
-                # mg ve g hesapla
-                mg_l = mmol * element_mol_agirligi
-                g_tank = (mg_l * st.session_state.konsantrasyon * st.session_state.b_tank) / 1000
-                
-                mikro_sonuc.append([gubre_adi, bilgi["formul"], float(mikromol), float(mg_l), float(g_tank)])
-        
-        # Sonuçları hesaplama
-        a_tank_sonuc = []
-        a_tank_toplam = 0
-        
-        for gubre, mmol in a_tank_gubreler.items():
-            formul = gubreler[gubre]["formul"]
-            mg_l = mmol * gubreler[gubre]["agirlik"]
-            g_tank = (mg_l * st.session_state.konsantrasyon * st.session_state.a_tank) / 1000
-            kg_tank = g_tank / 1000  # g -> kg
-            a_tank_toplam += g_tank
             
-            a_tank_sonuc.append([gubre, formul, float(mmol), float(mg_l), float(kg_tank)])
-        
-        b_tank_sonuc = []
-        b_tank_toplam = 0
-        
-        for gubre, mmol in b_tank_gubreler.items():
-            formul = gubreler[gubre]["formul"]
-            mg_l = mmol * gubreler[gubre]["agirlik"]
-            g_tank = (mg_l * st.session_state.konsantrasyon * st.session_state.b_tank) / 1000
-            kg_tank = g_tank / 1000  # g -> kg
-            b_tank_toplam += g_tank
+            # Monoamonyum Fosfat (NH4H2PO4) için
+            if "Monoamonyum Fosfat" in secilen_gubreler and kalan_h2po4 > 0 and kalan_nh4 > 0:
+                map_miktari = min(kalan_nh4, kalan_h2po4)
+                if map_miktari > 0:
+                    b_tank_gubreler["Monoamonyum Fosfat"] = map_miktari
+                    kalan_nh4 -= map_miktari
+                    kalan_h2po4 -= map_miktari
             
-            b_tank_sonuc.append([gubre, formul, float(mmol), float(mg_l), float(kg_tank)])
-        
-        # Sonuçları gösterme
-        col_sonuc1, col_sonuc2 = st.columns(2)
-        
-        with col_sonuc1:
-            st.subheader("A Tankı (Kalsiyum içeren)")
+            # Monopotasyum Fosfat (KH2PO4) için
+            if "Monopotasyum Fosfat" in secilen_gubreler and kalan_h2po4 > 0 and kalan_k > 0:
+                kh2po4_miktari = min(kalan_h2po4, kalan_k)
+                if kh2po4_miktari > 0:
+                    b_tank_gubreler["Monopotasyum Fosfat"] = kh2po4_miktari
+                    kalan_h2po4 -= kh2po4_miktari
+                    kalan_k -= kh2po4_miktari
             
-            if a_tank_sonuc:
-                a_tank_df = pd.DataFrame(a_tank_sonuc, 
-                                      columns=["Gübre Adı", "Formül", "mmol/L", "mg/L", "kg/Tank"])
-                st.dataframe(a_tank_df.style.format({
-                    "mmol/L": "{:.2f}", 
-                    "mg/L": "{:.2f}", 
-                    "kg/Tank": "{:.3f}"
-                }))
-                st.write(f"**Toplam A Tankı gübresi:** {a_tank_toplam/1000:.3f} kg")
+            # Kalsiyum Nitrat (Ca(NO3)2) için
+            if "Kalsiyum Nitrat" in secilen_gubreler and st.session_state.recete["Ca"] > 0:
+                a_tank_gubreler["Kalsiyum Nitrat"] = st.session_state.recete["Ca"]
+                kalan_no3 = st.session_state.recete["NO3"] - (2 * st.session_state.recete["Ca"])
             else:
-                st.info("A Tankı için gübre eklenmedi.")
-        
-        with col_sonuc2:
-            st.subheader("B Tankı (Fosfat, Sülfat ve Amonyum)")
+                kalan_no3 = st.session_state.recete["NO3"]
             
-            if b_tank_sonuc:
-                b_tank_df = pd.DataFrame(b_tank_sonuc, 
-                                     columns=["Gübre Adı", "Formül", "mmol/L", "mg/L", "kg/Tank"])
-                st.dataframe(b_tank_df.style.format({
-                    "mmol/L": "{:.2f}", 
-                    "mg/L": "{:.2f}", 
-                    "kg/Tank": "{:.3f}"
-                }))
-                st.write(f"**Toplam B Tankı gübresi:** {b_tank_toplam/1000:.3f} kg")
+            # Magnezyum Sülfat (MgSO4) için
+            if "Magnezyum Sülfat" in secilen_gubreler and st.session_state.recete["Mg"] > 0:
+                b_tank_gubreler["Magnezyum Sülfat"] = st.session_state.recete["Mg"]
+                kalan_so4 = st.session_state.recete["SO4"] - st.session_state.recete["Mg"]
             else:
-                st.info("B Tankı için gübre eklenmedi.")
-        
-        # Mikro besinleri göster
-        st.subheader("Mikro Besin Elementleri")
-        
-        if mikro_sonuc:
-            mikro_df = pd.DataFrame(mikro_sonuc, 
-                                 columns=["Gübre Adı", "Formül", "mikromol/L", "mg/L", "gram/Tank"])
-            st.dataframe(mikro_df.style.format({
-                "mikromol/L": "{:.2f}", 
-                "mg/L": "{:.4f}", 
-                "gram/Tank": "{:.4f}"
-            }))
-            mikro_toplam = sum(sonuc[4] for sonuc in mikro_sonuc)
-            st.write(f"**Toplam mikro besin gübresi:** {mikro_toplam:.2f} gram")
-        else:
-            st.info("Mikro besin elementi eklenmedi.")
-        
-        # Karşılanamayan besinleri gösterme
-        st.subheader("Denge Kontrol")
-        
-        eksik_var = False
-        uyari = ""
-        
-        if kalan_nh4 > 0.1:
-            eksik_var = True
-            uyari += f" NH4: {kalan_nh4:.2f} mmol/L,"
-        
-        if kalan_k > 0.1:
-            eksik_var = True
-            uyari += f" K: {kalan_k:.2f} mmol/L,"
-        
-        if kalan_no3 > 0.1:
-            eksik_var = True
-            uyari += f" NO3: {kalan_no3:.2f} mmol/L,"
-        
-        if kalan_so4 > 0.1:
-            eksik_var = True
-            uyari += f" SO4: {kalan_so4:.2f} mmol/L,"
-        
-        if eksik_var:
-            st.warning(f"⚠️ Karşılanamayan besinler:{uyari[:-1]}")
-        else:
-            st.success("✅ Tüm besinler uygun şekilde karşılandı.")
-
-# Alt bilgi
-st.markdown("---")
-st.markdown("HydroBuddy Türkçe | Hidroponik besin çözeltisi hesaplama aracı")
+                kalan_so4 = st.session_state.recete["SO4"]
+            
+            # Amonyum Sülfat ((NH4)2SO4) için
+            if "Amonyum Sülfat" in secilen_gubreler and kalan_nh4 > 0 and kalan_so4 > 0:
+                as_miktari = min(kalan_nh4 / 2, kalan_so4)
