@@ -259,10 +259,10 @@ with tabs[0]:
         anyon_toplam, katyon_toplam = hesapla_iyonik_denge(st.session_state.recete)
         col_denge1, col_denge2 = st.columns(2)
        
-# ⬇️ YENİ EKLENECEK: Otomatik İyonik Denge Butonu
-if st.button("🔧 İyonik Dengeyi Otomatik Düzelt"):
-    st.session_state.recete, mesaj = otomatik_iyon_duzelt(st.session_state.recete)
-    st.success(f"✅ {mesaj}")
+        # ⬇️ YENİ EKLENECEK: Otomatik İyonik Denge Butonu
+        if st.button("🔧 İyonik Dengeyi Otomatik Düzelt"):
+         st.session_state.recete, mesaj = otomatik_iyon_duzelt(st.session_state.recete)
+        st.success(f"✅ {mesaj}")
         with col_denge1:
             anyon_df = pd.DataFrame(
                 [[ion, st.session_state.recete[ion], st.session_state.recete[ion] * abs(iyon_degerlikleri[ion])] for ion in ["NO3", "H2PO4", "SO4"]],
