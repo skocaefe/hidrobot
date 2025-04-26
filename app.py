@@ -113,3 +113,83 @@ for element in mikro_elementler:
     secim = st.radio(f"{element} için kullanılacak gübre:", ["Seçilmedi"] + uygun_gubreler, horizontal=True, key=f"mikro_sec_{element}")
     if secim != "Seçilmedi":
         secilen_mikro_gubreler[element] = secim
+# --- Hesaplama Bölümü ---
+
+st.header("🧮 Hesaplama ve Sonuçlar")
+
+if st.button("🚀 HESAPLA"):
+    if not secilen_makro_gubreler:
+        st.error("Lütfen en az bir makro gübre seçin!")
+    else:
+        try:
+            # --- 1. Makro Hesaplama ---
+            # Matrisleri oluştur
+            hedef_iyonlar = np.array([makro_input[ion] for ion in makro_iyonlar])
+
+            A = []
+            for gubre in secilen_makro_gubreler:
+                sutun = []
+                for ion in makro_iyonlar:
+                    sutun.append(makro_gubreler[gubre]["iyonlar"].get(ion, 0))
+                A.append(sutun)
+            A = np.array(A).T  # İyonlar satırda, gübreler sütunda olacak
+
+            # Denklem çözümü
+            sonuc, residuals, rank, s = np.linalg.lstsq(A, hedef_iyonlar, rcond=None)
+
+            # Sonuçları toplama
+            gubre_sonuc = {}
+            for idx, gubre in enumerate(secilen_makro_gubreler):
+                mmol_per_l = sonuc[idx]
+                mg_per_l = mmol_per_l * makro_gubreler[gubre]["molar_agirlik"]
+                toplam_gram = mg_per_l * konsantrasyon_orani * tank_hacmi / 1000  # gram cinsinden
+                gubre_sonuc[gubre] = toplam_gram / 1000  # kg cinsinden
+
+            # --- 2. Mikro Hesaplama ---
+            mikro_sonuc = {}
+            for element in mikro_elementler:
+                hedef_umol = mikro_input[element]
+                if element in secilen_mikro_gubreler:
+                    secilen = secilen_mikro_gubreler[element]
+                    yuzde = mikro_gubreler[secilen]["yuzde"]
+                    element_agirlik = element_atom_agirlik[element]
+                    mg_per_l = (hedef_umol / 1000) * element_agirlik
+                    toplam_mg = mg_per_l * konsantrasyon_orani * tank_hacmi
+                    gerekli_gubre_mg = toplam_mg * 100 / yuzde
+                    mikro_sonuc[secilen] = gerekli_gubre_mg / 1000  # gram cinsinden
+
+            # --- 3. EC ve pH Tahmini ---
+            toplam_mmol = sum(makro_input[ion] for ion in makro_iyonlar)
+            tahmini_ec = toplam_mmol * 0.64  # Basit hidroponik çarpan
+
+            nh4_orani = makro_input["NH4"] / (makro_input["NO3"] + 0.0001)
+            if nh4_orani < 0.1:
+                ph_yorum = "Tahmini pH: Nötr veya hafif alkali (6.5-7.0)"
+            elif nh4_orani < 0.25:
+                ph_yorum = "Tahmini pH: Hafif asidik (6.0-6.5)"
+            else:
+                ph_yorum = "Tahmini pH: Asidik (5.5-6.0)"
+
+            # --- 4. Sonuçları Göster ---
+            with st.expander("📦 Makro Gübre Sonuçları"):
+                st.subheader("A ve B Tankı Gübreleri (kg)")
+                makro_df = pd.DataFrame(gubre_sonuc.items(), columns=["Gübre", "Kg (Tank Başına)"])
+                st.dataframe(makro_df.style.format({"Kg (Tank Başına)": "{:.3f}"}))
+
+            with st.expander("🌱 Mikro Gübre Sonuçları"):
+                st.subheader("Mikro Elementler (gram)")
+                if mikro_sonuc:
+                    mikro_df = pd.DataFrame(mikro_sonuc.items(), columns=["Mikro Gübre", "Gram (Tank Başına)"])
+                    st.dataframe(mikro_df.style.format({"Gram (Tank Başına)": "{:.1f}"}))
+                else:
+                    st.info("Seçilen mikro gübre bulunamadı.")
+
+            with st.expander("⚡ EC ve pH Tahmini"):
+                st.metric("Tahmini EC", f"{tahmini_ec:.2f} dS/m")
+                st.success(ph_yorum)
+
+            st.success("✅ Hesaplama tamamlandı. Yukarıdaki miktarları kullanabilirsiniz.")
+
+        except Exception as e:
+            st.error(f"Hesaplama yapılamadı: {str(e)}")
+            st.warning("Seçtiğiniz gübrelerle tam reçete oluşturulamıyor olabilir. Lütfen gübre seçiminizi kontrol edin.")
