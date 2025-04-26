@@ -28,9 +28,13 @@ gubreler = {
 }
 
 # gubreler sözlüğünün doğru tanımlandığını doğrula
-if not isinstance(gubreler, dict):
-    st.error(f"Hata: gubreler bir sözlük değil, tipi: {type(gubreler)}")
-    st.stop()
+for gubre_adi, gubre_bilgi in gubreler.items():
+    gerekli_anahtarlar = ["formul", "agirlik", "tank", "iyonlar"]
+    eksik_anahtarlar = [anahtar for anahtar in gerekli_anahtarlar if anahtar not in gubre_bilgi]
+    
+    if eksik_anahtarlar:
+        st.error(f"Hata: '{gubre_adi}' gübresinde eksik bilgiler var: {', '.join(eksik_anahtarlar)}")
+        st.stop()
 
 # Mikro elementler
 mikro_gubreler = {
