@@ -503,7 +503,7 @@ with tabs[3]:
                     kg_tank = g_tank / 1000
                     a_tank_toplam += g_tank
                     a_tank_sonuc.append([gubre, formul, mmol, mg_l, kg_tank])
-                except (TypeError, ValueError) as e:
+                except (TypeError, ValueError, KeyError) as e:
                     st.error(f"A Tankı gübresi '{gubre}' hesaplanırken hata: {str(e)}")
 
             b_tank_sonuc = []
@@ -516,7 +516,7 @@ with tabs[3]:
                     kg_tank = g_tank / 1000
                     b_tank_toplam += g_tank
                     b_tank_sonuc.append([gubre, formul, mmol, mg_l, kg_tank])
-                except (TypeError, ValueError) as e:
+                except (TypeError, ValueError, KeyError) as e:
                     st.error(f"B Tankı gübresi '{gubre}' hesaplanırken hata: {str(e)}")
 
             # Sonuçları göster
