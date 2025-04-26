@@ -260,7 +260,7 @@ with tabs[0]:
         col_denge1, col_denge2 = st.columns(2)
        
         # ⬇️ YENİ EKLENECEK: Otomatik İyonik Denge Butonu
-            if st.button("🔧 İyonik Dengeyi Otomatik Düzelt"):
+        if st.button("🔧 İyonik Dengeyi Otomatik Düzelt"):
             st.session_state.recete, mesaj = otomatik_iyon_duzelt(st.session_state.recete)
             st.success(f"✅ {mesaj}")
         with col_denge1:
