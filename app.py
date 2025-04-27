@@ -191,17 +191,16 @@ st.subheader("Besin Dengesi Değerlendirmesi")
 
 # Eksik iyonlar
 if eksik_iyonlar:
-st.error("⚠️ **Eksik İyonlar ve Olası Etkileri**")
-for iyon, miktar in eksik_iyonlar.items():
-col1, col2 = st.columns([1, 3])
-with col1:
-iyon_adi = iyon_bilgileri[iyon]["ad"] if iyon in iyon_bilgileri else iyon
-st.markdown(f"**{iyon} ({iyon_adi}):**")
-st.markdown(f"{miktar:.2f} mmol/L eksik")
-with col2:
-if iyon in iyon_bilgileri:
-st.markdown(f"**Olası etkiler:** {iyon_bilgileri[iyon]['eksik']}")
-
+    st.error("⚠️ **Eksik İyonlar ve Olası Etkileri**")
+    for iyon, miktar in eksik_iyonlar.items():
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            iyon_adi = iyon_bilgileri[iyon]["ad"] if iyon in iyon_bilgileri else iyon
+            st.markdown(f"**{iyon} ({iyon_adi}):**")
+            st.markdown(f"{miktar:.2f} mmol/L eksik")
+        with col2:
+            if iyon in iyon_bilgileri:
+                st.markdown(f"**Olası etkiler:** {iyon_bilgileri[iyon]['eksik']}")
 # Gübre önerileri
 if oneriler:
 st.warning("**Önerilen Gübreler:**")
