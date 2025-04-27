@@ -223,7 +223,7 @@ if fazla_iyonlar:
             if iyon in iyon_bilgileri:
                 st.markdown(f"**Olası etkiler:** {iyon_bilgileri[iyon]['fazla']}")
 if not eksik_iyonlar and not fazla_iyonlar:
-st.success("✅ Seçilen gübrelerle tüm besinler ideal olarak karşılandı.")
+    st.success("✅ Seçilen gübrelerle tüm besinler ideal olarak karşılandı.")
 
 # Hesaplama adımları
 with st.expander("Hesaplama Adımları"):
