@@ -203,12 +203,12 @@ if eksik_iyonlar:
                 st.markdown(f"**Olası etkiler:** {iyon_bilgileri[iyon]['eksik']}")
 # Gübre önerileri
 if oneriler:
-st.warning("**Önerilen Gübreler:**")
-for iyon, gubre_listesi in oneriler.items():
-iyon_adi = iyon_bilgileri[iyon]["ad"] if iyon in iyon_bilgileri else iyon
-st.markdown(f"**{iyon} ({iyon_adi}) için:**")
-for gubre in gubre_listesi:
-st.markdown(f"• {gubre}")
+    st.warning("**Önerilen Gübreler:**")
+    for iyon, gubre_listesi in oneriler.items():
+        iyon_adi = iyon_bilgileri[iyon]["ad"] if iyon in iyon_bilgileri else iyon
+        st.markdown(f"**{iyon} ({iyon_adi}) için:**")
+        for gubre in gubre_listesi:
+            st.markdown(f"• {gubre}")
 
 # Fazla iyonlar
 if fazla_iyonlar:
