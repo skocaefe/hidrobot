@@ -1,13 +1,13 @@
 # 8. Potasyum Sülfat
-                if "Potasyum Sülfat" in secilen_gubreler and net_ihtiyac["K"] > 0:
-                ks_miktar = net_ihtiyac["K"] / 2
-                b_tank_gubreler["Potasyum Sülfat"] = ks_miktar
-                net_ihtiyac["K"] = 0
-                net_ihtiyac["SO4"] -= ks_miktar
-                st.session_state.hesaplama_log.append({
-                    "adım": f"Adım {adim}", 
-                    "açıklama": f"Potasyum Sülfat: {ks_miktar:.2f} mmol/L",
-                    "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
+          if "Potasyum Sülfat" in secilen_gubreler and net_ihtiyac["K"] > 0:
+          ks_miktar = net_ihtiyac["K"] / 2
+          b_tank_gubreler["Potasyum Sülfat"] = ks_miktar
+          net_ihtiyac["K"] = 0
+          net_ihtiyac["SO4"] -= ks_miktar
+          st.session_state.hesaplama_log.append({
+                "adım": f"Adım {adim}", 
+                "açıklama": f"Potasyum Sülfat: {ks_miktar:.2f} mmol/L",
+                "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
                 })
                 adim += 1
             
