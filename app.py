@@ -51,7 +51,6 @@ iyon_bilgileri = {
         "eksik": "Protein sentezinde yavaşlama, büyümede durgunluk",
         "fazla": "Kök gelişiminde zayıflama, toksik etki, hücre zarı hasarı, pH düşüşü"
     },
-    asdfasdfasdf
     "K": {
         "ad": "Potasyum",
         "eksik": "Yaprak kenarlarında yanma, zayıf kök gelişimi, hastalıklara dayanıksızlık",
@@ -74,7 +73,7 @@ iyon_bilgileri = {
     },
     "B": {
         "ad": "Bor",
-        "eksik": "Büyüme noktalarında ölüm, çiçeklenmede problemler, kalın ve kırılgan gövde",
+        "eksik": "Büyüme noktalarında ölüm, çiçeklenmede problemler, kalın ve kır Dusty
         "fazla": "Yaprak kenarlarında yanma, nekroz, toksik etki"
     },
     "Mn": {
@@ -98,7 +97,6 @@ iyon_bilgileri = {
         "fazla": "Nadiren görülür, aşırı alımı hayvanlarda toksik etki yapabilir"
     }
 }
-
 # Gübre bilgileri
 gubreler = {
     "Kalsiyum Nitrat": {"formul": "Ca(NO3)2.4H2O", "agirlik": 236.15, "tank": "A", "iyonlar": {"Ca": 1, "NO3": 2}},
