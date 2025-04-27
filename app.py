@@ -1,23 +1,23 @@
-# 8. Potasyum Sülfat
-if "Potasyum Sülfat" in secilen_gubreler and net_ihtiyac["K"] > 0:
-    ks_miktar = net_ihtiyac["K"] / 2
-    b_tank_gubreler["Potasyum Sülfat"] = ks_miktar
-    net_ihtiyac["K"] = 0
-    net_ihtiyac["SO4"] -= ks_miktar
-    st.session_state.hesaplama_log.append({
-        "adım": f"Adım {adim}", 
-        "açıklama": f"Potasyum Sülfat: {ks_miktar:.2f} mmol/L",
-        "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
-    })
-    adim += 1
-
-# Negatif ihtiyaçları sıfırla ve fazla besinleri kaydet
-negatif_ihtiyaclar = {iyon: miktar for iyon, miktar in net_ihtiyac.items() if miktar < -0.1}
-for iyon in net_ihtiyac:
-    if net_ihtiyac[iyon] < 0:
-        net_ihtiyac[iyon] = 0
-            # İyon dengesini hesapla
-            eksik_iyonlar, fazla_iyonlar = iyon_dengesini_hesapla(st.session_state.recete, secilen_gubreler)
+        # 8. Potasyum Sülfat
+        if "Potasyum Sülfat" in secilen_gubreler and net_ihtiyac["K"] > 0:
+            ks_miktar = net_ihtiyac["K"] / 2
+            b_tank_gubreler["Potasyum Sülfat"] = ks_miktar
+            net_ihtiyac["K"] = 0
+            net_ihtiyac["SO4"] -= ks_miktar
+            st.session_state.hesaplama_log.append({
+                "adım": f"Adım {adim}", 
+                "açıklama": f"Potasyum Sülfat: {ks_miktar:.2f} mmol/L",
+                "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
+            })
+            adim += 1
+        
+        # Negatif ihtiyaçları sıfırla ve fazla besinleri kaydet
+        negatif_ihtiyaclar = {iyon: miktar for iyon, miktar in net_ihtiyac.items() if miktar < -0.1}
+        for iyon in net_ihtiyac:
+            if net_ihtiyac[iyon] < 0:
+                net_ihtiyac[iyon] = 0
+                    # İyon dengesini hesapla
+                    eksik_iyonlar, fazla_iyonlar = iyon_dengesini_hesapla(st.session_state.recete, secilen_gubreler)
             
             # Gübre önerilerini oluştur
             oneriler = gubre_onerileri_olustur(eksik_iyonlar, secilen_gubreler)
