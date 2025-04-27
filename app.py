@@ -1,5 +1,5 @@
 # 8. Potasyum Sülfat
-            if "Potasyum Sülfat" in secilen_gubreler and net_ihtiyac["K"] > 0:
+                if "Potasyum Sülfat" in secilen_gubreler and net_ihtiyac["K"] > 0:
                 ks_miktar = net_ihtiyac["K"] / 2
                 b_tank_gubreler["Potasyum Sülfat"] = ks_miktar
                 net_ihtiyac["K"] = 0
