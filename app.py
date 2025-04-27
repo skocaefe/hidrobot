@@ -166,12 +166,12 @@ with col_sonuc2:
 # Mikro besinler
 st.subheader("Mikro Besin Elementleri")
 if mikro_sonuc:
-mikro_df = pd.DataFrame(mikro_sonuc, columns=["Gübre Adı", "Formül", "mikromol/L", "mg/L", "gram/Tank"])
-st.dataframe(mikro_df.style.format({"mikromol/L": "{:.2f}", "mg/L": "{:.4f}", "gram/Tank": "{:.2f}"}))
-mikro_toplam = sum(sonuc[4] for sonuc in mikro_sonuc)
-st.write(f"**Toplam mikro besin gübresi:** {mikro_toplam:.2f} gram")
+    mikro_df = pd.DataFrame(mikro_sonuc, columns=["Gübre Adı", "Formül", "mikromol/L", "mg/L", "gram/Tank"])
+    st.dataframe(mikro_df.style.format({"mikromol/L": "{:.2f}", "mg/L": "{:.4f}", "gram/Tank": "{:.2f}"}))
+    mikro_toplam = sum(sonuc[4] for sonuc in mikro_sonuc)
+    st.write(f"**Toplam mikro besin gübresi:** {mikro_toplam:.2f} gram")
 else:
-st.info("Mikro besin elementi eklenmedi.")
+    st.info("Mikro besin elementi eklenmedi.")
 st.warning("""
 **Mikro besin hesaplanmama nedenleri:**
 1. Mikro besin için uygun kaynak seçilmemiş olabilir.
