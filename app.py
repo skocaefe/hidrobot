@@ -257,12 +257,11 @@ if st.button("Gübre Hesapla", type="primary"):
 if not secilen_gubreler:
     st.error("Lütfen 'Gübre Seçimi' sekmesinden en az bir makro gübre seçin!")
 else:
-try:
-# Net ihtiyaç hesaplama (kuyu suyu değerlerini çıkararak)
-net_ihtiyac = {
-ion: max(0, float(st.session_state.recete[ion]) - float(st.session_state.kuyu_suyu[ion]))
-for ion in ["NO3", "H2PO4", "SO4", "NH4", "K", "Ca", "Mg"]
-}
+    try:
+        # Hata oluşabilecek kodlar buraya gelecek
+        st.write("Gübre hesaplama işlemi başlatılıyor...")
+    except Exception as e:
+        st.error(f"Hata oluştu: {str(e)}")
 
 # Hesaplama logunu başlat
 st.session_state.hesaplama_log = []
