@@ -12,7 +12,7 @@ if "Potasyum Sülfat" in secilen_gubreler and net_ihtiyac["K"] > 0:
                 adim += 1
                     
                    # Negatif ihtiyaçları sıfırla ve fazla besinleri kaydet
-            negatif_ihtiyaclar = {iyon: miktar for iyon, miktar in net_ihtiyac.items() if miktar < -0.1}
+negatif_ihtiyaclar = {iyon: miktar for iyon, miktar in net_ihtiyac.items() if miktar < -0.1}
             for iyon in net_ihtiyac:
                 if net_ihtiyac[iyon] < 0:
                     net_ihtiyac[iyon] = 0
