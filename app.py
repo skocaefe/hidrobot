@@ -147,13 +147,13 @@ except Exception as e:
 # Sonuçları göster
 col_sonuc1, col_sonuc2 = st.columns(2)
 with col_sonuc1:
-st.subheader("A Tankı (Kalsiyum içeren)")
-if a_tank_sonuc:
-a_tank_df = pd.DataFrame(a_tank_sonuc, columns=["Gübre Adı", "Formül", "mmol/L", "mg/L", "kg/Tank"])
-st.dataframe(a_tank_df.style.format({"mmol/L": "{:.2f}", "mg/L": "{:.2f}", "kg/Tank": "{:.3f}"}))
-st.write(f"**Toplam A Tankı gübresi:** {a_tank_toplam/1000:.3f} kg")
-else:
-st.info("A Tankı için gübre eklenmedi.")
+    st.subheader("A Tankı (Kalsiyum içeren)")
+    if a_tank_sonuc:
+        a_tank_df = pd.DataFrame(a_tank_sonuc, columns=["Gübre Adı", "Formül", "mmol/L", "mg/L", "kg/Tank"])
+        st.dataframe(a_tank_df.style.format({"mmol/L": "{:.2f}", "mg/L": "{:.2f}", "kg/Tank": "{:.3f}"}))
+        st.write(f"**Toplam A Tankı gübresi:** {a_tank_toplam/1000:.3f} kg")
+    else:
+        st.info("A Tankı için gübre eklenmedi.")
 
 with col_sonuc2:
 st.subheader("B Tankı (Fosfat, Sülfat ve Amonyum)")
