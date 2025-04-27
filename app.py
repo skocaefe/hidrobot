@@ -33,7 +33,7 @@ adim += 1
 
 # 5. Monoamonyum Fosfat
 if "Monoamonyum Fosfat" in secilen_gubreler and net_ihtiyac["H2PO4"] > 0:
-map_miktar = net_ihtiyac["H2PO4"]
+    map_miktar = net_ihtiyac["H2PO4"]
 b_tank_gubreler["Monoamonyum Fosfat"] = map_miktar
 net_ihtiyac["H2PO4"] = 0
 net_ihtiyac["NH4"] -= map_miktar
@@ -46,7 +46,7 @@ adim += 1
 
 # 6. Amonyum Sülfat
 if "Amonyum Sülfat" in secilen_gubreler and net_ihtiyac["NH4"] > 0:
-as_miktar = net_ihtiyac["NH4"] / 2
+    as_miktar = net_ihtiyac["NH4"] / 2
 b_tank_gubreler["Amonyum Sülfat"] = as_miktar
 net_ihtiyac["NH4"] = 0
 net_ihtiyac["SO4"] -= as_miktar
@@ -59,7 +59,7 @@ adim += 1
 
 # 7. Potasyum Nitrat
 if "Potasyum Nitrat" in secilen_gubreler and net_ihtiyac["K"] > 0 and net_ihtiyac["NO3"] > 0:
-kn_miktar = min(net_ihtiyac["K"], net_ihtiyac["NO3"])
+   kn_miktar = min(net_ihtiyac["K"], net_ihtiyac["NO3"])
 a_tank_gubreler["Potasyum Nitrat"] = kn_miktar
 net_ihtiyac["K"] -= kn_miktar
 net_ihtiyac["NO3"] -= kn_miktar
@@ -72,7 +72,7 @@ adim += 1
 
 # 8. Potasyum Sülfat
 if "Potasyum Sülfat" in secilen_gubreler and net_ihtiyac["K"] > 0:
-ks_miktar = net_ihtiyac["K"] / 2
+   ks_miktar = net_ihtiyac["K"] / 2
 b_tank_gubreler["Potasyum Sülfat"] = ks_miktar
 net_ihtiyac["K"] = 0
 net_ihtiyac["SO4"] -= ks_miktar
@@ -87,7 +87,7 @@ adim += 1
 negatif_ihtiyaclar = {iyon: miktar for iyon, miktar in net_ihtiyac.items() if miktar < -IYON_ESIK_DEGERI}
 for iyon in net_ihtiyac:
 if net_ihtiyac[iyon] < 0:
-net_ihtiyac[iyon] = 0
+   net_ihtiyac[iyon] = 0
 
 # İyon dengesini hesapla
 eksik_iyonlar, fazla_iyonlar = iyon_dengesini_hesapla(st.session_state.recete, secilen_gubreler)
