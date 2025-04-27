@@ -227,12 +227,12 @@ if not eksik_iyonlar and not fazla_iyonlar:
 
 # Hesaplama adımları
 with st.expander("Hesaplama Adımları"):
-for log in st.session_state.hesaplama_log:
-st.write(f"**{log['adım']}:** {log['açıklama']}")
-if log["ihtiyac"]:
-ihtiyac_df = pd.DataFrame([[k, v] for k, v in log["ihtiyac"].items()], columns=["İyon", "İhtiyaç (mmol/L)"])
-st.dataframe(ihtiyac_df.style.format({"İhtiyaç (mmol/L)": "{:.2f}"}))
-st.markdown("---")
+    for log in st.session_state.hesaplama_log:
+        st.write(f"**{log['adım']}:** {log['açıklama']}")
+        if log["ihtiyac"]:
+            ihtiyac_df = pd.DataFrame([[k, v] for k, v in log["ihtiyac"].items()], columns=["İyon", "İhtiyaç (mmol/L)"])
+            st.dataframe(ihtiyac_df.style.format({"İhtiyaç (mmol/L)": "{:.2f}"}))
+        st.markdown("---")
 
 except Exception as e:
 logger.error(f"Hesaplama hatası: {str(e)}")
