@@ -251,8 +251,7 @@ except Exception as e:
 st.markdown("---")
 st.markdown("HydroBuddy Türkçe | Hidroponik besin çözeltisi hesaplama aracı")# Tab 4: Gübre Hesaplama
 with tabs[3]:
-st.header("Gübre Hesaplama")
-
+    st.header("Gübre Hesaplama")
 if st.button("Gübre Hesapla", type="primary"):
 secilen_gubreler = st.session_state.secilen_gubreler
 
