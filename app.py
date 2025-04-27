@@ -171,7 +171,7 @@ def karsilanabilirlik_kontrolu(recete, secilen_gubreler):
 # Sidebar
 with st.sidebar:
     st.header("Ayarlar")
-    if st.button("Session State'i Sıfırla"):
+    if st.button("Hesaplamaları ve gübreleri sıfırla"):
         session_state_sifirla()
 
 # Ana düzen
