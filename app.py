@@ -156,14 +156,13 @@ with col_sonuc1:
         st.info("A Tankı için gübre eklenmedi.")
 
 with col_sonuc2:
-st.subheader("B Tankı (Fosfat, Sülfat ve Amonyum)")
-if b_tank_sonuc:
-b_tank_df = pd.DataFrame(b_tank_sonuc, columns=["Gübre Adı", "Formül", "mmol/L", "mg/L", "kg/Tank"])
-st.dataframe(b_tank_df.style.format({"mmol/L": "{:.2f}", "mg/L": "{:.2f}", "kg/Tank": "{:.3f}"}))
-st.write(f"**Toplam B Tankı gübresi:** {b_tank_toplam/1000:.3f} kg")
-else:
-st.info("B Tankı için gübre eklenmedi.")
-
+    st.subheader("B Tankı (Fosfat, Sülfat ve Amonyum)")
+    if b_tank_sonuc:
+        b_tank_df = pd.DataFrame(b_tank_sonuc, columns=["Gübre Adı", "Formül", "mmol/L", "mg/L", "kg/Tank"])
+        st.dataframe(b_tank_df.style.format({"mmol/L": "{:.2f}", "mg/L": "{:.2f}", "kg/Tank": "{:.3f}"}))
+        st.write(f"**Toplam B Tankı gübresi:** {b_tank_toplam/1000:.3f} kg")
+    else:
+        st.info("B Tankı için gübre eklenmedi.")
 # Mikro besinler
 st.subheader("Mikro Besin Elementleri")
 if mikro_sonuc:
