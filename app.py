@@ -184,7 +184,7 @@ Mikro besinler (Fe, Mn, B, Zn, Cu, Mo) için 'Gübre Seçimi' sekmesinden kaynak
 
 # Kuyu suyu uyarısı
 if any(st.session_state.kuyu_suyu.values()):
-st.success("✅ Kuyu suyu analiziniz hesaplamada dikkate alındı.")
+    st.success("✅ Kuyu suyu analiziniz hesaplamada dikkate alındı.")
 
 # Eksik ve fazla besin değerlendirmesi
 st.subheader("Besin Dengesi Değerlendirmesi")
