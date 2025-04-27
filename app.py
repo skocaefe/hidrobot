@@ -73,7 +73,7 @@ iyon_bilgileri = {
     },
     "B": {
         "ad": "Bor",
-        "eksik": "Büyüme noktalarında ölüm, çiçeklenmede problemler, kalın ve kır Dusty
+        "eksik": "Büyüme noktalarında ölüm, çiçeklenmede problemler, kalın ve kırılgan gövde",
         "fazla": "Yaprak kenarlarında yanma, nekroz, toksik etki"
     },
     "Mn": {
