@@ -278,7 +278,7 @@ adim = 1
 
 # 1. Kalsiyum Nitrat
 if "Kalsiyum Nitrat" in secilen_gubreler and net_ihtiyac["Ca"] > 0:
-ca_miktar = net_ihtiyac["Ca"]
+    ca_miktar = net_ihtiyac["Ca"]
 a_tank_gubreler["Kalsiyum Nitrat"] = ca_miktar
 net_ihtiyac["Ca"] = 0
 net_ihtiyac["NO3"] -= 2 * ca_miktar
