@@ -832,109 +832,54 @@ with tabs[3]:
                 b_tank_gubreler = {}
                 adim = 1
 
-                # 1. Kalsiyum Nitrat
-                if "Kalsiyum Nitrat" in secilen_gubreler and net_ihtiyac["Ca"] > 0:
-                    ca_miktar = min(net_ihtiyac["Ca"], net_ihtiyac["NO3"] / 2)  # NO3 katkısını sınırla
-                    a_tank_gubreler["Kalsiyum Nitrat"] = ca_miktar
-                    net_ihtiyac["Ca"] -= ca_miktar
-                    net_ihtiyac["NO3"] -= 2 * ca_miktar
-                    st.session_state.hesaplama_log.append({
-                        "adım": f"Adım {adim}",
-                        "açıklama": f"Kalsiyum Nitrat: {ca_miktar:.2f} mmol/L",
-                        "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
-                    })
-                    adim += 1
+                # Gübre öncelik sırası ve iyon katkıları
+                gubre_iyonlari = {
+                    "Kalsiyum Nitrat": {"Ca": 1, "NO3": 2},
+                    "Magnezyum Nitrat": {"Mg": 1, "NO3": 2},
+                    "Magnezyum Sülfat": {"Mg": 1, "SO4": 1},
+                    "Monopotasyum Fosfat": {"H2PO4": 1, "K": 1},
+                    "Monoamonyum Fosfat": {"H2PO4": 1, "NH4": 1},
+                    "Amonyum Sülfat": {"NH4": 2, "SO4": 1},
+                    "Potasyum Nitrat": {"K": 1, "NO3": 1},
+                    "Potasyum Sülfat": {"K": 2, "SO4": 1}
+                }
 
-                # 2. Magnezyum Nitrat
-                if "Magnezyum Nitrat" in secilen_gubreler and net_ihtiyac["Mg"] > 0:
-                    mg_miktar = min(net_ihtiyac["Mg"], net_ihtiyac["NO3"] / 2)  # NO3 katkısını sınırla
-                    a_tank_gubreler["Magnezyum Nitrat"] = mg_miktar
-                    net_ihtiyac["Mg"] -= mg_miktar
-                    net_ihtiyac["NO3"] -= 2 * mg_miktar
-                    st.session_state.hesaplama_log.append({
-                        "adım": f"Adım {adim}",
-                        "açıklama": f"Magnezyum Nitrat: {mg_miktar:.2f} mmol/L",
-                        "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
-                    })
-                    adim += 1
+                # Gübreleri öncelik sırasına göre ekle
+                for gubre in [
+                    "Kalsiyum Nitrat", "Magnezyum Sülfat", "Monopotasyum Fosfat",
+                    "Potasyum Nitrat", "Monoamonyum Fosfat", "Amonyum Sülfat",
+                    "Magnezyum Nitrat", "Potasyum Sülfat"
+                ]:
+                    if gubre not in secilen_gubreler:
+                        continue
 
-                # 3. Magnezyum Sülfat
-                if "Magnezyum Sülfat" in secilen_gubreler and net_ihtiyac["Mg"] > 0:
-                    mg_miktar = min(net_ihtiyac["Mg"], net_ihtiyac["SO4"])  # SO4 katkısını sınırla
-                    b_tank_gubreler["Magnezyum Sülfat"] = mg_miktar
-                    net_ihtiyac["Mg"] -= mg_miktar
-                    net_ihtiyac["SO4"] -= mg_miktar
-                    st.session_state.hesaplama_log.append({
-                        "adım": f"Adım {adim}",
-                        "açıklama": f"Magnezyum Sülfat: {mg_miktar:.2f} mmol/L",
-                        "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
-                    })
-                    adim += 1
+                    iyonlar = gubre_iyonlari[gubre]
+                    # Gübre miktarını, iyon ihtiyaçlarının minimumuna göre belirle
+                    miktar = float("inf")
+                    for iyon, katsayi in iyonlar.items():
+                        if net_ihtiyac[iyon] > 0:
+                            miktar = min(miktar, net_ihtiyac[iyon] / katsayi)
+                        else:
+                            miktar = 0
+                            break
 
-                # 4. Monopotasyum Fosfat
-                if "Monopotasyum Fosfat" in secilen_gubreler and net_ihtiyac["H2PO4"] > 0:
-                    mkp_miktar = min(net_ihtiyac["H2PO4"], net_ihtiyac["K"])  # K katkısını sınırla
-                    b_tank_gubreler["Monopotasyum Fosfat"] = mkp_miktar
-                    net_ihtiyac["H2PO4"] -= mkp_miktar
-                    net_ihtiyac["K"] -= mkp_miktar
-                    st.session_state.hesaplama_log.append({
-                        "adım": f"Adım {adim}",
-                        "açıklama": f"Monopotasyum Fosfat: {mkp_miktar:.2f} mmol/L",
-                        "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
-                    })
-                    adim += 1
+                    if miktar > 0:
+                        tank = "A" if gubre in ["Kalsiyum Nitrat", "Magnezyum Nitrat", "Potasyum Nitrat"] else "B"
+                        if tank == "A":
+                            a_tank_gubreler[gubre] = miktar
+                        else:
+                            b_tank_gubreler[gubre] = miktar
 
-                # 5. Monoamonyum Fosfat
-                if "Monoamonyum Fosfat" in secilen_gubreler and net_ihtiyac["H2PO4"] > 0:
-                    map_miktar = min(net_ihtiyac["H2PO4"], net_ihtiyac["NH4"])  # NH4 katkısını sınırla
-                    b_tank_gubreler["Monoamonyum Fosfat"] = map_miktar
-                    net_ihtiyac["H2PO4"] -= map_miktar
-                    net_ihtiyac["NH4"] -= map_miktar
-                    st.session_state.hesaplama_log.append({
-                        "adım": f"Adım {adim}",
-                        "açıklama": f"Monoamonyum Fosfat: {map_miktar:.2f} mmol/L",
-                        "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
-                    })
-                    adim += 1
+                        # İyon ihtiyaçlarını güncelle
+                        for iyon, katsayi in iyonlar.items():
+                            net_ihtiyac[iyon] -= miktar * katsayi
 
-                # 6. Amonyum Sülfat
-                if "Amonyum Sülfat" in secilen_gubreler and net_ihtiyac["NH4"] > 0:
-                    as_miktar = min(net_ihtiyac["NH4"] / 2, net_ihtiyac["SO4"])  # NH4 ve SO4 katkısını sınırla
-                    b_tank_gubreler["Amonyum Sülfat"] = as_miktar
-                    net_ihtiyac["NH4"] -= 2 * as_miktar
-                    net_ihtiyac["SO4"] -= as_miktar
-                    st.session_state.hesaplama_log.append({
-                        "adım": f"Adım {adim}",
-                        "açıklama": f"Amonyum Sülfat: {as_miktar:.2f} mmol/L",
-                        "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
-                    })
-                    adim += 1
-
-                # 7. Potasyum Nitrat
-                if "Potasyum Nitrat" in secilen_gubreler and net_ihtiyac["K"] > 0 and net_ihtiyac["NO3"] > 0:
-                    kn_miktar = min(net_ihtiyac["K"], net_ihtiyac["NO3"])  # K ve NO3 katkısını sınırla
-                    a_tank_gubreler["Potasyum Nitrat"] = kn_miktar
-                    net_ihtiyac["K"] -= kn_miktar
-                    net_ihtiyac["NO3"] -= kn_miktar
-                    st.session_state.hesaplama_log.append({
-                        "adım": f"Adım {adim}",
-                        "açıklama": f"Potasyum Nitrat: {kn_miktar:.2f} mmol/L",
-                        "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
-                    })
-                    adim += 1
-
-                # 8. Potasyum Sülfat
-                if "Potasyum Sülfat" in secilen_gubreler and net_ihtiyac["K"] > 0:
-                    ks_miktar = min(net_ihtiyac["K"] / 2, net_ihtiyac["SO4"])  # K ve SO4 katkısını sınırla
-                    b_tank_gubreler["Potasyum Sülfat"] = ks_miktar
-                    net_ihtiyac["K"] -= 2 * ks_miktar
-                    net_ihtiyac["SO4"] -= ks_miktar
-                    st.session_state.hesaplama_log.append({
-                        "adım": f"Adım {adim}",
-                        "açıklama": f"Potasyum Sülfat: {ks_miktar:.2f} mmol/L",
-                        "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
-                    })
-                    adim += 1
+                        st.session_state.hesaplama_log.append({
+                            "adım": f"Adım {adim}",
+                            "açıklama": f"{gubre}: {miktar:.2f} mmol/L",
+                            "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
+                        })
+                        adim += 1
 
                 # Negatif ihtiyaçları sıfırla
                 for iyon in net_ihtiyac:
@@ -946,6 +891,16 @@ with tabs[3]:
 
                 # Gübre önerilerini oluştur
                 oneriler = gubre_onerileri_olustur(eksik_iyonlar, secilen_gubreler)
+
+                # Fazla iyonlar için öneriler
+                fazla_iyon_onerileri = {}
+                for iyon, miktar in fazla_iyonlar.items():
+                    iyon_adi = iyon_bilgileri[iyon]["ad"] if iyon in iyon_bilgileri else iyon
+                    ilgili_gubreler = []
+                    for gubre, iyonlar in gubre_iyonlari.items():
+                        if iyon in iyonlar and gubre in secilen_gubreler:
+                            ilgili_gubreler.append(gubre)
+                    fazla_iyon_onerileri[iyon] = ilgili_gubreler
 
                 # Mikro besin hesaplamaları
                 mikro_sonuc = hesapla_mikro_besinler(
@@ -1077,7 +1032,10 @@ Mikro besinler (Fe, Mn, B, Zn, Cu, Mo) için 'Gübre Seçimi' sekmesinden kaynak
                         with col2:
                             if iyon in iyon_bilgileri:
                                 st.markdown(f"**Olası etkiler:** {iyon_bilgileri[iyon]['fazla']}")
-                    st.info("**Öneri:** Fazla iyonları azaltmak için ilgili gübre miktarlarını düşürmeyi veya alternatif gübreler kullanmayı düşünün.")
+                            if iyon in fazla_iyon_onerileri and fazla_iyon_onerileri[iyon]:
+                                st.markdown("**Öneri:** Bu iyonu azaltmak için şu gübrelerin miktarını düşürün:")
+                                for gubre in fazla_iyon_onerileri[iyon]:
+                                    st.markdown(f"• {gubre}")
 
                 # Denge kontrolü
                 if not eksik_iyonlar and not fazla_iyonlar:
