@@ -813,6 +813,12 @@ with tabs[3]:
             st.error("Lütfen 'Gübre Seçimi' sekmesinden en az bir makro gübre seçin!")
         else:
             try:
+                # Net ihtiyacı hesapla (reçeteden kuyu suyu iyonlarını çıkar)
+                net_ihtiyac = {
+                    ion: max(0, float(st.session_state.recete[ion]) - float(st.session_state.kuyu_suyu.get(ion, 0)))
+                    for ion in ["NO3", "H2PO4", "SO4", "NH4", "K", "Ca", "Mg"]
+                }
+
                 # Hesaplama logunu başlat
                 st.session_state.hesaplama_log = []
                 st.session_state.hesaplama_log.append({
@@ -1088,7 +1094,6 @@ Mikro besinler (Fe, Mn, B, Zn, Cu, Mo) için 'Gübre Seçimi' sekmesinden kaynak
                 logger.error(f"Hesaplama hatası: {str(e)}")
                 st.error(f"Hesaplama sırasında bir hata oluştu: {str(e)}")
                 st.info("Lütfen girdileri kontrol edip tekrar deneyin veya hatayı raporlayın.")
-
 # Alt bilgi
 st.markdown("---")
 st.markdown("HydroBuddy Türkçe | Hidroponik besin çözeltisi hesaplama aracı")
