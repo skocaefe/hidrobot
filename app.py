@@ -738,7 +738,7 @@ with tabs[1]:
     col1, col2 = st.columns(2)
     for col, ions in [(col1, ["NO3", "H2PO4", "SO4"]), (col2, ["NH4", "K", "Ca", "Mg"])]:
         with col:
-            st.subheader(f"{'Anyonlar' if col == col happiest
+            st.subheader(f"{'Anyonlar' if col == col1 else 'Katyonlar'}")
             for ion in ions:
                 st.session_state.kuyu_suyu[ion] = st.number_input(
                     f"{ion}:", value=float(st.session_state.kuyu_suyu[ion]), min_value=0.0, max_value=10.0, step=0.05, format="%.2f", key=f"kuyu_{ion}_input"
@@ -748,7 +748,6 @@ with tabs[1]:
         st.success("✅ Kuyu suyu değerleri kaydedildi ve hesaplamalarda dikkate alınacak.")
     else:
         st.info("ℹ️ Şu anda kuyu suyu değeri girilmemiş. Saf su varsayılacak.")
-
 # Tab 3: Gübre Seçimi
 with tabs[2]:
     st.header("Elimdeki Gübreler")
