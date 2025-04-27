@@ -253,8 +253,7 @@ st.markdown("HydroBuddy Türkçe | Hidroponik besin çözeltisi hesaplama aracı
 with tabs[3]:
     st.header("Gübre Hesaplama")
 if st.button("Gübre Hesapla", type="primary"):
-secilen_gubreler = st.session_state.secilen_gubreler
-
+    secilen_gubreler = st.session_state.secilen_gubreler
 if not secilen_gubreler:
 st.error("Lütfen 'Gübre Seçimi' sekmesinden en az bir makro gübre seçin!")
 else:
