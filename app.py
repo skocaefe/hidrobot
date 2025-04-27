@@ -212,17 +212,16 @@ if oneriler:
 
 # Fazla iyonlar
 if fazla_iyonlar:
-st.warning("⚠️ **Fazla İyonlar ve Olası Etkileri**")
-for iyon, miktar in fazla_iyonlar.items():
-col1, col2 = st.columns([1, 3])
-with col1:
-iyon_adi = iyon_bilgileri[iyon]["ad"] if iyon in iyon_bilgileri else iyon
-st.markdown(f"**{iyon} ({iyon_adi}):**")
-st.markdown(f"{miktar:.2f} mmol/L fazla")
-with col2:
-if iyon in iyon_bilgileri:
-st.markdown(f"**Olası etkiler:** {iyon_bilgileri[iyon]['fazla']}")
-
+    st.warning("⚠️ **Fazla İyonlar ve Olası Etkileri**")
+    for iyon, miktar in fazla_iyonlar.items():
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            iyon_adi = iyon_bilgileri[iyon]["ad"] if iyon in iyon_bilgileri else iyon
+            st.markdown(f"**{iyon} ({iyon_adi}):**")
+            st.markdown(f"{miktar:.2f} mmol/L fazla")
+        with col2:
+            if iyon in iyon_bilgileri:
+                st.markdown(f"**Olası etkiler:** {iyon_bilgileri[iyon]['fazla']}")
 if not eksik_iyonlar and not fazla_iyonlar:
 st.success("✅ Seçilen gübrelerle tüm besinler ideal olarak karşılandı.")
 
