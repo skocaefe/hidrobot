@@ -7,7 +7,7 @@ from io import BytesIO
 
 # 3. Magnezyum Sülfat
 if "Magnezyum Sülfat" in secilen_gubreler and net_ihtiyac["Mg"] > 0:
-mg_miktar = net_ihtiyac["Mg"]
+    mg_miktar = net_ihtiyac["Mg"]
 b_tank_gubreler["Magnezyum Sülfat"] = mg_miktar
 net_ihtiyac["Mg"] = 0
 net_ihtiyac["SO4"] -= mg_miktar
