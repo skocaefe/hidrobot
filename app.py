@@ -255,7 +255,7 @@ with tabs[3]:
 if st.button("Gübre Hesapla", type="primary"):
     secilen_gubreler = st.session_state.secilen_gubreler
 if not secilen_gubreler:
-st.error("Lütfen 'Gübre Seçimi' sekmesinden en az bir makro gübre seçin!")
+    st.error("Lütfen 'Gübre Seçimi' sekmesinden en az bir makro gübre seçin!")
 else:
 try:
 # Net ihtiyaç hesaplama (kuyu suyu değerlerini çıkararak)
