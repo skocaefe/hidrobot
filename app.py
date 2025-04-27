@@ -120,16 +120,17 @@ def iyon_dengesini_hesapla(recete, secilen_gubreler):
                         iyon_tuketim["H2PO4"] += net_ihtiyac["H2PO4"]
                     elif gubre == "Monoamonyum Fosfat" and iyon == "NH4":
                         iyon_tuketim["NH4"] += net_ihtiyac["H2PO4"]
-                    elif gubre == "Potasyum Nitrat" and iyon == "K" and net_ihtiyac["K"] > 0 and net_ihtiyac["NO3
-                    iyon_tuketim["K"] += kn_miktar
-                    iyon_tuketim["NO3"] += kn_miktar
-                elif gubre == "Potasyum Sülfat" and iyon == "K" and net_ihtiyac["K"] > 0:
-                    iyon_tuketim["K"] += net_ihtiyac["K"]
-                    iyon_tuketim["SO4"] += net_ihtiyac["K"] / 2
-                elif gubre == "Amonyum Sülfat" and iyon == "NH4" and net_ihtiyac["NH4"] > 0:
-                    as_miktar = min(net_ihtiyac["NH4"] / 2, net_ihtiyac["SO4"])
-                    iyon_tuketim["NH4"] += 2 * as_miktar
-                    iyon_tuketim["SO4"] += as_miktar
+                    elif gubre == "Potasyum Nitrat" and iyon == "K" and net_ihtiyac["K"] > 0 and net_ihtiyac["NO3"] > 0:
+                        kn_miktar = min(net_ihtiyac["K"], net_ihtiyac["NO3"])
+                        iyon_tuketim["K"] += kn_miktar
+                        iyon_tuketim["NO3"] += kn_miktar
+                    elif gubre == "Potasyum Sülfat" and iyon == "K" and net_ihtiyac["K"] > 0:
+                        iyon_tuketim["K"] += net_ihtiyac["K"]
+                        iyon_tuketim["SO4"] += net_ihtiyac["K"] / 2
+                    elif gubre == "Amonyum Sülfat" and iyon == "NH4" and net_ihtiyac["NH4"] > 0:
+                        as_miktar = min(net_ihtiyac["NH4"] / 2, net_ihtiyac["SO4"])
+                        iyon_tuketim["NH4"] += 2 * as_miktar
+                        iyon_tuketim["SO4"] += as_miktar
 
     eksik_iyonlar = {}
     fazla_iyonlar = {}
@@ -402,8 +403,140 @@ with tabs[3]:
                     mg_miktar = net_ihtiyac["Mg"]
                     b_tank_gubreler["Magnezyum Sülfat"] = mg_miktar
                     net_ihtiyac["Mg"] = 0
-                    net_ihtiyacখ
+                    net_ihtiyac["SO4"] -= mg_miktar
+                    st.session_state.hesaplama_log.append({
+                        "adım": f"Adım {adim}",
+                        "açıklama": f"Magnezyum Sülfat: {mg_miktar:.2f} mmol/L",
+                        "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
+                    })
+                    adim += 1
 
+                # 4. Monopotasyum Fosfat
+                if "Monopotasyum Fosfat" in secilen_gubreler and net_ihtiyac["H2PO4"] > 0:
+                    mkp_miktar = net_ihtiyac["H2PO4"]
+                    b_tank_gubreler["Monopotasyum Fosfat"] = mkp_miktar
+                    net_ihtiyac["H2PO4"] = 0
+                    net_ihtiyac["K"] -= mkp_miktar
+                    st.session_state.hesaplama_log.append({
+                        "adım": f"Adım {adim}",
+                        "açıklama": f"Monopotasyum Fosfat: {mkp_miktar:.2f} mmol/L",
+                        "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
+                    })
+                    adim += 1
+
+                # 5. Monoamonyum Fosfat
+                if "Monoamonyum Fosfat" in secilen_gubreler and net_ihtiyac["H2PO4"] > 0:
+                    map_miktar = net_ihtiyac["H2PO4"]
+                    b_tank_gubreler["Monoamonyum Fosfat"] = map_miktar
+                    net_ihtiyac["H2PO4"] = 0
+                    net_ihtiyac["NH4"] -= map_miktar
+                    st.session_state.hesaplama_log.append({
+                        "adım": f"Adım {adim}",
+                        "açıklama": f"Monoamonyum Fosfat: {map_miktar:.2f} mmol/L",
+                        "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
+                    })
+                    adim += 1
+
+                # 6. Amonyum Sülfat
+                if "Amonyum Sülfat" in secilen_gubreler and net_ihtiyac["NH4"] > 0:
+                    as_miktar = net_ihtiyac["NH4"] / 2
+                    b_tank_gubreler["Amonyum Sülfat"] = as_miktar
+                    net_ihtiyac["NH4"] = 0
+                    net_ihtiyac["SO4"] -= as_miktar
+                    st.session_state.hesaplama_log.append({
+                        "adım": f"Adım {adim}",
+                        "açıklama": f"Amonyum Sülfat: {as_miktar:.2f} mmol/L",
+                        "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
+                    })
+                    adim += 1
+
+                # 7. Potasyum Nitrat
+                if "Potasyum Nitrat" in secilen_gubreler and net_ihtiyac["K"] > 0 and net_ihtiyac["NO3"] > 0:
+                    kn_miktar = min(net_ihtiyac["K"], net_ihtiyac["NO3"])
+                    a_tank_gubreler["Potasyum Nitrat"] = kn_miktar
+                    net_ihtiyac["K"] -= kn_miktar
+                    net_ihtiyac["NO3"] -= kn_miktar
+                    st.session_state.hesaplama_log.append({
+                        "adım": f"Adım {adim}",
+                        "açıklama": f"Potasyum Nitrat: {kn_miktar:.2f} mmol/L",
+                        "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
+                    })
+                    adim += 1
+
+                # 8. Potasyum Sülfat
+                if "Potasyum Sülfat" in secilen_gubreler and net_ihtiyac["K"] > 0:
+                    ks_miktar = net_ihtiyac["K"] / 2
+                    b_tank_gubreler["Potasyum Sülfat"] = ks_miktar
+                    net_ihtiyac["K"] = 0
+                    net_ihtiyac["SO4"] -= ks_miktar
+                    st.session_state.hesaplama_log.append({
+                        "adım": f"Adım {adim}",
+                        "açıklama": f"Potasyum Sülfat: {ks_miktar:.2f} mmol/L",
+                        "ihtiyac": {k: round(v, 2) for k, v in net_ihtiyac.items()}
+                    })
+                    adim += 1
+
+                # Negatif ihtiyaçları sıfırla
+                for iyon in net_ihtiyac:
+                    if net_ihtiyac[iyon] < 0:
+                        net_ihtiyac[iyon] = 0
+
+                # İyon dengesini hesapla
+                eksik_iyonlar, fazla_iyonlar = iyon_dengesini_hesapla(st.session_state.recete, secilen_gubreler)
+
+                # Gübre önerilerini oluştur
+                oneriler = gubre_onerileri_olustur(eksik_iyonlar, secilen_gubreler)
+
+                # Mikro besin hesaplamaları
+                mikro_sonuc = hesapla_mikro_besinler(
+                    st.session_state.recete,
+                    st.session_state.secilen_mikro_gubreler,
+                    st.session_state.konsantrasyon,
+                    st.session_state.b_tank
+                )
+
+                # A ve B tankı gübrelerinin kütle hesaplamaları
+                a_tank_sonuc, a_tank_toplam = hesapla_tank_gübreleri(
+                    a_tank_gubreler, "A", st.session_state.a_tank, st.session_state.konsantrasyon
+                )
+
+                b_tank_sonuc, b_tank_toplam = hesapla_tank_gübreleri(
+                    b_tank_gubreler, "B", st.session_state.b_tank, st.session_state.konsantrasyon
+                )
+
+                # Sonuç bilgilerini saklama
+                st.session_state.hesaplama_sonuclari = {
+                    "a_tank_sonuc": a_tank_sonuc,
+                    "b_tank_sonuc": b_tank_sonuc,
+                    "mikro_sonuc": mikro_sonuc,
+                    "eksik_iyonlar": eksik_iyonlar,
+                    "fazla_iyonlar": fazla_iyonlar,
+                    "oneriler": oneriler
+                }
+
+                # PDF oluşturma
+                try:
+                    pdf_bytes = create_pdf(
+                        st.session_state.recete,
+                        a_tank_sonuc,
+                        b_tank_sonuc,
+                        mikro_sonuc,
+                        eksik_iyonlar,
+                        fazla_iyonlar,
+                        oneriler
+                    )
+                    st.download_button(
+                        label="📄 Hesaplama Sonuçlarını PDF Olarak İndir",
+                        data=pdf_bytes,
+                        file_name=f"hydrobuddy_rapor_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.pdf",
+                        mime="application/pdf"
+                    )
+                except Exception as e:
+                    st.warning(f"PDF oluşturulurken hata: {str(e)}")
+
+                # Sonuçları göster
+                col_sonuc1, col_sonuc2 = st.columns(2)
+                with col_sonuc1:
                     st.subheader("A Tankı (Kalsiyum içeren)")
                     if a_tank_sonuc:
                         a_tank_df = pd.DataFrame(a_tank_sonuc, columns=["Gübre Adı", "Formül", "mmol/L", "mg/L", "kg/Tank"])
