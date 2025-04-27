@@ -87,7 +87,7 @@ adim += 1
 negatif_ihtiyaclar = {iyon: miktar for iyon, miktar in net_ihtiyac.items() if miktar < -IYON_ESIK_DEGERI}
 for iyon in net_ihtiyac:
 if net_ihtiyac[iyon] < 0:
-    net_ihtiyac[iyon] = 0
+   net_ihtiyac[iyon] = 0
 
 # İyon dengesini hesapla
 eksik_iyonlar, fazla_iyonlar = iyon_dengesini_hesapla(st.session_state.recete, secilen_gubreler)
