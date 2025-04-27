@@ -1,7 +1,11 @@
 import streamlit as st
 import pandas as pd
-import datetime
+import numpy as np
+import base64
 from fpdf import FPDF
+from io import BytesIO
+import datetime
+import logging
 # 3. Magnezyum Sülfat
                 if "Magnezyum Sülfat" in secilen_gubreler and net_ihtiyac["Mg"] > 0:
                     mg_miktar = net_ihtiyac["Mg"]
