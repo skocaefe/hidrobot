@@ -233,9 +233,9 @@ with st.expander("Hesaplama Adımları"):
         st.markdown("---")
 
 except Exception as e:
-    logger.error(f"Hesaplama hatası: {str(e)}")
-    st.error(f"Hesaplama sırasında bir hata oluştu: {str(e)}")
-    st.info("Lütfen girdileri kontrol edip tekrar deneyin veya hatayı raporlayın.")
+logger.error(f"Hesaplama hatası: {str(e)}")
+st.error(f"Hesaplama sırasında bir hata oluştu: {str(e)}")
+st.info("Lütfen girdileri kontrol edip tekrar deneyin veya hatayı raporlayın.")
 
 # Alt bilgi
 st.markdown("---")
