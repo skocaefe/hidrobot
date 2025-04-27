@@ -124,27 +124,26 @@ st.session_state.hesaplama_sonuclari = {
 
 # PDF oluşturma
 try:
-pdf_bytes = create_pdf(
-st.session_state.recete,
-a_tank_sonuc,
-b_tank_sonuc,
-mikro_sonuc,
-eksik_iyonlar,
-fazla_iyonlar,
-oneriler
-)
+    pdf_bytes = create_pdf(
+        st.session_state.recete,
+        a_tank_sonuc,
+        b_tank_sonuc,
+        mikro_sonuc,
+        eksik_iyonlar,
+        fazla_iyonlar,
+        oneriler
+    )
 
-# PDF indirme butonu
-st.download_button(
-label="📄 Hesaplama Sonuçlarını PDF Olarak İndir",
-data=pdf_bytes,
-file_name=f"hydrobuddy_rapor_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.pdf",
-mime="application/pdf"
-)
+    # PDF indirme butonu
+    st.download_button(
+        label="📄 Hesaplama Sonuçlarını PDF Olarak İndir",
+        data=pdf_bytes,
+        file_name=f"hydrobuddy_rapor_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.pdf",
+        mime="application/pdf"
+    )
 except Exception as e:
-logger.error(f"PDF oluşturma hatası: {str(e)}")
-st.warning(f"PDF oluşturulurken hata: {str(e)}\nPDF indirme özelliği için fpdf kütüphanesi ve DejaVuSansCondensed.ttf fontu gereklidir.")
-
+    logger.error(f"PDF oluşturma hatası: {str(e)}")
+    st.warning(f"PDF oluşturulurken hata: {str(e)}\nPDF indirme özelliği için fpdf kütüphanesi ve DejaVuSansCondensed.ttf fontu gereklidir.")
 # Sonuçları göster
 col_sonuc1, col_sonuc2 = st.columns(2)
 with col_sonuc1:
