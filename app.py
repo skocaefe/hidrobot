@@ -834,9 +834,9 @@ with tabs[3]:
 
                 # 1. Kalsiyum Nitrat
                 if "Kalsiyum Nitrat" in secilen_gubreler and net_ihtiyac["Ca"] > 0:
-                    ca_miktar = net_ihtiyac["Ca"]
+                    ca_miktar = min(net_ihtiyac["Ca"], net_ihtiyac["NO3"] / 2)  # NO3 katkısını sınırla
                     a_tank_gubreler["Kalsiyum Nitrat"] = ca_miktar
-                    net_ihtiyac["Ca"] = 0
+                    net_ihtiyac["Ca"] -= ca_miktar
                     net_ihtiyac["NO3"] -= 2 * ca_miktar
                     st.session_state.hesaplama_log.append({
                         "adım": f"Adım {adim}",
@@ -847,9 +847,9 @@ with tabs[3]:
 
                 # 2. Magnezyum Nitrat
                 if "Magnezyum Nitrat" in secilen_gubreler and net_ihtiyac["Mg"] > 0:
-                    mg_miktar = net_ihtiyac["Mg"]
+                    mg_miktar = min(net_ihtiyac["Mg"], net_ihtiyac["NO3"] / 2)  # NO3 katkısını sınırla
                     a_tank_gubreler["Magnezyum Nitrat"] = mg_miktar
-                    net_ihtiyac["Mg"] = 0
+                    net_ihtiyac["Mg"] -= mg_miktar
                     net_ihtiyac["NO3"] -= 2 * mg_miktar
                     st.session_state.hesaplama_log.append({
                         "adım": f"Adım {adim}",
@@ -860,9 +860,9 @@ with tabs[3]:
 
                 # 3. Magnezyum Sülfat
                 if "Magnezyum Sülfat" in secilen_gubreler and net_ihtiyac["Mg"] > 0:
-                    mg_miktar = net_ihtiyac["Mg"]
+                    mg_miktar = min(net_ihtiyac["Mg"], net_ihtiyac["SO4"])  # SO4 katkısını sınırla
                     b_tank_gubreler["Magnezyum Sülfat"] = mg_miktar
-                    net_ihtiyac["Mg"] = 0
+                    net_ihtiyac["Mg"] -= mg_miktar
                     net_ihtiyac["SO4"] -= mg_miktar
                     st.session_state.hesaplama_log.append({
                         "adım": f"Adım {adim}",
@@ -873,9 +873,9 @@ with tabs[3]:
 
                 # 4. Monopotasyum Fosfat
                 if "Monopotasyum Fosfat" in secilen_gubreler and net_ihtiyac["H2PO4"] > 0:
-                    mkp_miktar = net_ihtiyac["H2PO4"]
+                    mkp_miktar = min(net_ihtiyac["H2PO4"], net_ihtiyac["K"])  # K katkısını sınırla
                     b_tank_gubreler["Monopotasyum Fosfat"] = mkp_miktar
-                    net_ihtiyac["H2PO4"] = 0
+                    net_ihtiyac["H2PO4"] -= mkp_miktar
                     net_ihtiyac["K"] -= mkp_miktar
                     st.session_state.hesaplama_log.append({
                         "adım": f"Adım {adim}",
@@ -886,9 +886,9 @@ with tabs[3]:
 
                 # 5. Monoamonyum Fosfat
                 if "Monoamonyum Fosfat" in secilen_gubreler and net_ihtiyac["H2PO4"] > 0:
-                    map_miktar = net_ihtiyac["H2PO4"]
+                    map_miktar = min(net_ihtiyac["H2PO4"], net_ihtiyac["NH4"])  # NH4 katkısını sınırla
                     b_tank_gubreler["Monoamonyum Fosfat"] = map_miktar
-                    net_ihtiyac["H2PO4"] = 0
+                    net_ihtiyac["H2PO4"] -= map_miktar
                     net_ihtiyac["NH4"] -= map_miktar
                     st.session_state.hesaplama_log.append({
                         "adım": f"Adım {adim}",
@@ -899,9 +899,9 @@ with tabs[3]:
 
                 # 6. Amonyum Sülfat
                 if "Amonyum Sülfat" in secilen_gubreler and net_ihtiyac["NH4"] > 0:
-                    as_miktar = net_ihtiyac["NH4"] / 2
+                    as_miktar = min(net_ihtiyac["NH4"] / 2, net_ihtiyac["SO4"])  # NH4 ve SO4 katkısını sınırla
                     b_tank_gubreler["Amonyum Sülfat"] = as_miktar
-                    net_ihtiyac["NH4"] = 0
+                    net_ihtiyac["NH4"] -= 2 * as_miktar
                     net_ihtiyac["SO4"] -= as_miktar
                     st.session_state.hesaplama_log.append({
                         "adım": f"Adım {adim}",
@@ -912,7 +912,7 @@ with tabs[3]:
 
                 # 7. Potasyum Nitrat
                 if "Potasyum Nitrat" in secilen_gubreler and net_ihtiyac["K"] > 0 and net_ihtiyac["NO3"] > 0:
-                    kn_miktar = min(net_ihtiyac["K"], net_ihtiyac["NO3"])
+                    kn_miktar = min(net_ihtiyac["K"], net_ihtiyac["NO3"])  # K ve NO3 katkısını sınırla
                     a_tank_gubreler["Potasyum Nitrat"] = kn_miktar
                     net_ihtiyac["K"] -= kn_miktar
                     net_ihtiyac["NO3"] -= kn_miktar
@@ -925,9 +925,9 @@ with tabs[3]:
 
                 # 8. Potasyum Sülfat
                 if "Potasyum Sülfat" in secilen_gubreler and net_ihtiyac["K"] > 0:
-                    ks_miktar = net_ihtiyac["K"] / 2
+                    ks_miktar = min(net_ihtiyac["K"] / 2, net_ihtiyac["SO4"])  # K ve SO4 katkısını sınırla
                     b_tank_gubreler["Potasyum Sülfat"] = ks_miktar
-                    net_ihtiyac["K"] = 0
+                    net_ihtiyac["K"] -= 2 * ks_miktar
                     net_ihtiyac["SO4"] -= ks_miktar
                     st.session_state.hesaplama_log.append({
                         "adım": f"Adım {adim}",
@@ -936,8 +936,7 @@ with tabs[3]:
                     })
                     adim += 1
 
-                # Negatif ihtiyaçları sıfırla ve fazla besinleri kaydet
-                negatif_ihtiyaclar = {iyon: miktar for iyon, miktar in net_ihtiyac.items() if miktar < -IYON_ESIK_DEGERI}
+                # Negatif ihtiyaçları sıfırla
                 for iyon in net_ihtiyac:
                     if net_ihtiyac[iyon] < 0:
                         net_ihtiyac[iyon] = 0
@@ -1041,7 +1040,7 @@ Mikro besinler (Fe, Mn, B, Zn, Cu, Mo) için 'Gübre Seçimi' sekmesinden kaynak
                 if any(st.session_state.kuyu_suyu.values()):
                     st.success("✅ Kuyu suyu analiziniz hesaplamada dikkate alındı.")
 
-                # Eksik ve fazla besin değerlendirmesi
+                # Besin dengesi değerlendirmesi
                 st.subheader("Besin Dengesi Değerlendirmesi")
 
                 # Eksik iyonlar
@@ -1059,7 +1058,7 @@ Mikro besinler (Fe, Mn, B, Zn, Cu, Mo) için 'Gübre Seçimi' sekmesinden kaynak
 
                 # Gübre önerileri
                 if oneriler:
-                    st.warning("**Önerilen Gübreler:**")
+                    st.warning("**Eksik İyonlar için Önerilen Gübreler:**")
                     for iyon, gubre_listesi in oneriler.items():
                         iyon_adi = iyon_bilgileri[iyon]["ad"] if iyon in iyon_bilgileri else iyon
                         st.markdown(f"**{iyon} ({iyon_adi}) için:**")
@@ -1078,8 +1077,11 @@ Mikro besinler (Fe, Mn, B, Zn, Cu, Mo) için 'Gübre Seçimi' sekmesinden kaynak
                         with col2:
                             if iyon in iyon_bilgileri:
                                 st.markdown(f"**Olası etkiler:** {iyon_bilgileri[iyon]['fazla']}")
+                    st.info("**Öneri:** Fazla iyonları azaltmak için ilgili gübre miktarlarını düşürmeyi veya alternatif gübreler kullanmayı düşünün.")
+
+                # Denge kontrolü
                 if not eksik_iyonlar and not fazla_iyonlar:
-                    st.success("✅ Seçilen gübrelerle tüm besinler ideal olarak karşılandı.")
+                    st.success("✅ Seçilen gübrelerle tüm besinler ideal olarak karşılandı. Çözelti dengeli!")
 
                 # Hesaplama adımları
                 with st.expander("Hesaplama Adımları"):
