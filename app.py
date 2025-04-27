@@ -109,7 +109,7 @@ def session_state_sifirla():
     for key in list(st.session_state.keys()):
         del st.session_state[key]
     session_state_baslat()
-    st.success("Session state sıfırlandı!")
+    st.success("Gübreler sıfırlandı!")
 
 # İyonik denge hesaplama fonksiyonu
 def hesapla_iyonik_denge(recete):
