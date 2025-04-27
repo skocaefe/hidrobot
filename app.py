@@ -20,7 +20,7 @@ adim += 1
 
 # 4. Monopotasyum Fosfat
 if "Monopotasyum Fosfat" in secilen_gubreler and net_ihtiyac["H2PO4"] > 0:
-mkp_miktar = net_ihtiyac["H2PO4"]
+    mkp_miktar = net_ihtiyac["H2PO4"]
 b_tank_gubreler["Monopotasyum Fosfat"] = mkp_miktar
 net_ihtiyac["H2PO4"] = 0
 net_ihtiyac["K"] -= mkp_miktar
