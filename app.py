@@ -18,13 +18,13 @@ KONSANTRASYON = 100  # Varsayılan konsantrasyon faktörü
 # Hazır reçete şablonları
 RECETE_SABLONLARI = {
     "Marul": {
-        "NO3": 9.0, "H2PO4": 1.5, "SO4": 1.0, "NH4": 1.0,
-        "K": 5.0, "Ca": 4.0, "Mg": 1.5,
+        "NO3": 9.0, "H2PO4": 1.5, "SO4": 1.25, "NH4": 1.0,
+        "K": 5.0, "Ca": 3.75, "Mg": 1.5,
         "Fe": 20.0, "Mn": 5.0, "B": 20.0, "Zn": 3.0, "Cu": 0.5, "Mo": 0.5
     },
     "Domates": {
         "NO3": 12.0, "H2PO4": 2.0, "SO4": 2.0, "NH4": 1.5,
-        "K": 8.0, "Ca": 5.0, "Mg": 2.0,
+        "K": 8.0, "Ca": 4.5, "Mg": 2.0,
         "Fe": 25.0, "Mn": 6.0, "B": 25.0, "Zn": 4.0, "Cu": 0.7, "Mo": 0.6
     }
 }
